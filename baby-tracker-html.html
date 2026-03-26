@@ -1,13 +1,12 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Little Bowen 🌙</title>
+<title>Bowen's Business 🌙</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-  /* ---- PASTE YOUR JSONBIN MASTER KEY BELOW ---- */
-  :root { --accent: #818cf8; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: #0f0f1a; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 480px; margin: 0 auto; min-height: 100vh; padding-bottom: 72px; }
   .card { background: #1e1e2e; border: 1px solid #2e2e42; border-radius: 16px; padding: 16px; margin-bottom: 14px; }
@@ -19,8 +18,7 @@
   input[type=text], input[type=number] { width: 100%; padding: 13px 14px; border: 1.5px solid #2e2e42; border-radius: 12px; font-size: 17px; background: #16162a; color: #e2e8f0; outline: none; }
   input:focus { border-color: #818cf8; }
   input::placeholder { color: #475569; }
-  input[type=range] { width: 100%; accent-color: #818cf8; cursor: pointer; }
-  label { display: block; font-size: 14px; color: #94a3b8; font-weight: 500; margin-bottom: 6px; }
+  input[type=datetime-local] { width: 100%; padding: 13px 14px; border: 1.5px solid #2e2e42; border-radius: 12px; font-size: 15px; background: #16162a; color: #e2e8f0; outline: none; margin-bottom: 0; color-scheme: dark; }
   nav { position: fixed; bottom: 0; left: 0; right: 0; background: #1e1e2e; border-top: 1px solid #2e2e42; display: flex; max-width: 480px; margin: 0 auto; z-index: 50; }
   nav button { flex: 1; padding: 13px 0; background: none; border: none; font-size: 13px; color: #475569; cursor: pointer; font-weight: 400; }
   nav button.active { color: #818cf8; font-weight: 700; }
@@ -32,48 +30,48 @@
   .row { display: flex; gap: 8px; }
   .page { padding: 20px 16px; display: none; }
   .page.active { display: block; }
-  .toast { position: fixed; top: 0; left: 0; right: 0; background: #818cf8; color: #fff; text-align: center; font-size: 13px; padding: 4px 0; z-index: 200; display: none; }
+  .toast { position: fixed; top: 0; left: 0; right: 0; text-align: center; font-size: 13px; padding: 6px 0; z-index: 200; display: none; font-weight: 600; }
+  .toast.saving { background: #818cf8; color: #fff; display: block; }
+  .toast.success { background: #22c55e; color: #fff; display: block; }
+  .toast.error { background: #ef4444; color: #fff; display: block; }
   .slider-row { display: flex; justify-content: space-between; margin-bottom: 6px; }
   .slider-val { font-size: 15px; font-weight: 700; color: #818cf8; }
   .slider-hint { display: flex; justify-content: space-between; font-size: 11px; color: #475569; margin-top: 2px; margin-bottom: 16px; }
   .nappy-opt { padding: 14px; border-radius: 12px; border: 2px solid #2e2e42; background: #16162a; font-size: 16px; cursor: pointer; color: #e2e8f0; width: 100%; margin-bottom: 10px; text-align: left; }
   .nappy-opt.selected { border-color: #818cf8; background: #2d2b55; font-weight: 600; }
-  .entry-row { background: #1e1e2e; border: 1px solid #2e2e42; border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-start; }
-  .entry-main { font-weight: 600; font-size: 15px; color: #e2e8f0; }
-  .entry-sub { font-size: 13px; color: #64748b; margin-top: 2px; }
-  .entry-time { text-align: right; font-size: 13px; color: #94a3b8; }
-  .entry-time .remove-btn { font-size: 12px; padding: 4px 8px; border-radius: 8px; border: 1px solid #2e2e42; background: none; color: #475569; cursor: pointer; margin-top: 6px; display: block; }
-  .entry-time .confirm-row { display: flex; gap: 6px; margin-top: 6px; justify-content: flex-end; }
+  .remove-btn { font-size: 12px; padding: 4px 8px; border-radius: 8px; border: 1px solid #2e2e42; background: none; color: #475569; cursor: pointer; margin-top: 6px; display: block; }
   .chart-wrap { margin-bottom: 28px; }
   .chart-wrap h3 { font-size: 15px; color: #94a3b8; margin-bottom: 12px; }
-  canvas { border-radius: 8px; }
+  .preset-btn { flex:1; padding:8px 0; background:#1e1e2e; border:1.5px solid #2e2e42; border-radius:10px; color:#64748b; font-size:14px; font-weight:600; cursor:pointer; }
+  .preset-btn.active { background:#2d2b55; border-color:#818cf8; color:#818cf8; }
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+  .summary-card { background: #1e1e2e; border: 1px solid #2e2e42; border-radius: 12px; padding: 12px 14px; }
+  .summary-card .val { font-size: 22px; font-weight: 700; color: #e2e8f0; }
+  .summary-card .lbl { font-size: 12px; color: #64748b; margin-top: 2px; }
   #overlay { position: fixed; inset: 0; background: #0f0f1a; display: flex; align-items: center; justify-content: center; z-index: 300; }
   #overlay .inner { background: #1e1e2e; border: 1px solid #2e2e42; border-radius: 24px; padding: 36px 28px; width: 100%; max-width: 360px; }
 </style>
 </head>
 <body>
 
-<!-- ======================================================
-     STEP 1: Paste your Cloudflare Worker URL below
-     STEP 2: Paste your APP_SECRET (same one you set
-             in Cloudflare environment variables)
-     ====================================================== -->
-<script>
+  <script>
   const WORKER_URL   = "https://crimson-field-cfbb.backupjwb.workers.dev/";
   const APP_SECRET   = "bowen";
 </script>
+ 
 
-<div class="toast" id="toast">Saving…</div>
+<div class="toast" id="toast"></div>
 
 <!-- Name screen -->
 <div id="overlay">
   <div class="inner">
     <div style="font-size:40px;margin-bottom:16px">🌙</div>
-    <h1 style="font-size:26px;color:#f1f5f9;font-weight:700;margin-bottom:8px">Little Log</h1>
+    <h1 style="font-size:26px;color:#f1f5f9;font-weight:700;margin-bottom:8px">Bowen's Business</h1>
     <p style="color:#94a3b8;font-size:15px;line-height:1.5;margin-bottom:32px">Shared baby tracker for feeds, nappies and pumping. Enter your name to get started.</p>
-    <label style="font-size:15px;font-weight:600;color:#e2e8f0;margin-bottom:8px">Your name</label>
+    <label style="display:block;font-size:15px;font-weight:600;color:#e2e8f0;margin-bottom:8px">Your name</label>
     <input type="text" id="nameInput" placeholder="e.g. Joe" style="margin-bottom:16px">
     <button class="btn btn-primary" id="nameBtn" disabled onclick="startApp()">Get started</button>
+
   </div>
 </div>
 
@@ -81,50 +79,40 @@
 <div id="app" style="display:none">
 
   <!-- HOME -->
-  <div class="page active" id="page-home">
-    <h2 style="font-size:22px;color:#e2e8f0;margin-bottom:16px">Little Bowen 🌙</h2>
-    <div class="card" style="display:flex;align-items:center;justify-content:space-between">
-      <div>
-        <div style="font-size:17px;font-weight:600;margin-bottom:3px">🍼 Feed</div>
-        <div id="last-feed" style="font-size:14px;color:#94a3b8">No entries yet</div>
-      </div>
-      <button class="btn" style="background:#3b82f6;color:#fff;flex-shrink:0" onclick="openModal('feed')">Log</button>
-    </div>
-    <div class="card" style="display:flex;align-items:center;justify-content:space-between">
-      <div>
-        <div style="font-size:17px;font-weight:600;margin-bottom:3px">👶 Nappy</div>
-        <div id="last-nappy" style="font-size:14px;color:#94a3b8">No entries yet</div>
-      </div>
-      <button class="btn" style="background:#22c55e;color:#fff;flex-shrink:0" onclick="openModal('nappy')">Log</button>
-    </div>
-    <div class="card" style="display:flex;align-items:center;justify-content:space-between">
-      <div>
-        <div style="font-size:17px;font-weight:600;margin-bottom:3px">🤱 Pump</div>
-        <div id="last-pump" style="font-size:14px;color:#94a3b8">No entries yet</div>
-      </div>
-      <button class="btn" style="background:#ec4899;color:#fff;flex-shrink:0" onclick="openModal('pump')">Log</button>
-    </div>
-  </div>
+  <div class="page active" id="page-home"></div>
 
   <!-- RECENT -->
   <div class="page" id="page-recent">
-    <h2 style="font-size:20px;color:#e2e8f0;margin-bottom:16px">Recent entries</h2>
+    <h2 style="font-size:20px;color:#e2e8f0;margin-bottom:16px">Log</h2>
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <button class="preset-btn active" onclick="setLogFilter('today',this)">Today</button>
+      <button class="preset-btn" onclick="setLogFilter(7,this)">7d</button>
+      <button class="preset-btn" onclick="setLogFilter(30,this)">30d</button>
+      <button class="preset-btn" onclick="setLogFilter(0,this)">All</button>
+    </div>
     <div id="recent-list"></div>
   </div>
 
   <!-- TRENDS -->
   <div class="page" id="page-trends">
-    <h2 style="font-size:20px;color:#e2e8f0;margin-bottom:20px">Last 7 days</h2>
+    <h2 style="font-size:20px;color:#e2e8f0;margin-bottom:16px">Trends</h2>
+    <div style="display:flex;gap:8px;margin-bottom:20px">
+      <button class="preset-btn active" onclick="setPreset(7,this)">7d</button>
+      <button class="preset-btn" onclick="setPreset(14,this)">14d</button>
+      <button class="preset-btn" onclick="setPreset(30,this)">30d</button>
+      <button class="preset-btn" onclick="setPreset(0,this)">All</button>
+    </div>
+    <div id="trends-summary" class="summary-grid"></div>
     <div class="chart-wrap"><h3>🍼 Total feed per day (ml)</h3><canvas id="c-feed"></canvas></div>
-    <div class="chart-wrap"><h3>🍼 EBM vs formula per day (ml)</h3><canvas id="c-ebm"></canvas></div>
-    <div class="chart-wrap"><h3>🤱 Pumped per day (ml)</h3><canvas id="c-pump"></canvas></div>
-    <div class="chart-wrap"><h3>👶 Nappies per day by type</h3><canvas id="c-nappy"></canvas></div>
+    <div class="chart-wrap"><h3>🍼 EBM vs formula (ml)</h3><canvas id="c-ebm"></canvas></div>
+    <div class="chart-wrap"><h3>🤱 Pumped (ml)</h3><canvas id="c-pump"></canvas></div>
+    <div class="chart-wrap"><h3>👶 Nappies by type</h3><canvas id="c-nappy"></canvas></div>
     <div class="chart-wrap"><h3>🍼 Feed frequency + avg size</h3><canvas id="c-freq"></canvas></div>
   </div>
 
   <nav>
     <button class="active" onclick="showTab('home',this)">Home</button>
-    <button onclick="showTab('recent',this)">Recent</button>
+    <button onclick="showTab('recent',this)">Log</button>
     <button onclick="showTab('trends',this)">Trends</button>
     <button onclick="confirmReset()">⚙️</button>
   </nav>
@@ -133,7 +121,7 @@
 <!-- FEED MODAL -->
 <div class="modal-backdrop" id="modal-feed" style="display:none">
   <div class="modal">
-    <h2>🍼 Feed</h2>
+    <h2 id="feed-modal-title">🍼 Feed</h2>
     <div class="slider-row"><label>Total amount</label><span class="slider-val" id="feed-total-val">80ml</span></div>
     <input type="range" min="0" max="300" step="5" value="80" id="feed-total" oninput="updateFeedSliders()">
     <div class="slider-hint"><span>0ml</span><span>300ml</span></div>
@@ -144,9 +132,11 @@
       <span style="color:#94a3b8;font-size:14px">Formula</span>
       <span style="color:#818cf8;font-weight:700;font-size:15px" id="feed-formula-val">40ml</span>
     </div>
+    <label>Date &amp; time</label>
+    <input type="datetime-local" id="feed-ts" style="margin-bottom:16px">
     <div class="row">
       <button class="btn btn-secondary" onclick="closeModal('feed')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveFeed()">Save</button>
+      <button class="btn btn-primary" id="feed-save-btn" onclick="saveFeed()">Save</button>
     </div>
   </div>
 </div>
@@ -154,10 +144,12 @@
 <!-- NAPPY MODAL -->
 <div class="modal-backdrop" id="modal-nappy" style="display:none">
   <div class="modal">
-    <h2>👶 Nappy</h2>
+    <h2 id="nappy-modal-title">👶 Nappy</h2>
     <button class="nappy-opt" id="nopt-wet" onclick="selectNappy('wet')">Wet</button>
     <button class="nappy-opt" id="nopt-dirty" onclick="selectNappy('dirty')">Dirty</button>
     <button class="nappy-opt" id="nopt-both" onclick="selectNappy('both')">Both</button>
+    <label style="margin-top:4px">Date &amp; time</label>
+    <input type="datetime-local" id="nappy-ts" style="margin-bottom:16px">
     <div class="row" style="margin-top:4px">
       <button class="btn btn-secondary" onclick="closeModal('nappy')">Cancel</button>
       <button class="btn btn-primary" id="nappy-save-btn" disabled onclick="saveNappy()">Save</button>
@@ -168,10 +160,12 @@
 <!-- PUMP MODAL -->
 <div class="modal-backdrop" id="modal-pump" style="display:none">
   <div class="modal">
-    <h2>🤱 Pump</h2>
+    <h2 id="pump-modal-title">🤱 Pump</h2>
     <div class="slider-row"><label>Amount pumped</label><span class="slider-val" id="pump-val">60ml</span></div>
     <input type="range" min="0" max="300" step="5" value="60" id="pump-slider" oninput="document.getElementById('pump-val').textContent=this.value+'ml'">
     <div class="slider-hint"><span>0ml</span><span>300ml</span></div>
+    <label>Date &amp; time</label>
+    <input type="datetime-local" id="pump-ts" style="margin-bottom:16px">
     <div class="row" style="margin-top:4px">
       <button class="btn btn-secondary" onclick="closeModal('pump')">Cancel</button>
       <button class="btn btn-primary" onclick="savePump()">Save</button>
@@ -182,7 +176,7 @@
 <!-- RESET CONFIRM -->
 <div class="modal-backdrop modal-center" id="modal-reset" style="display:none">
   <div class="modal">
-    <h2 style="border-radius:0">Reset all data?</h2>
+    <h2>Reset all data?</h2>
     <p style="color:#94a3b8;font-size:14px;margin-bottom:24px">This will permanently delete all entries for both users.</p>
     <div class="row">
       <button class="btn btn-secondary" onclick="closeModal('reset')">Cancel</button>
@@ -192,64 +186,102 @@
 </div>
 
 <script>
-// ---- State ----
 let WHO = "";
 let entries = [];
 let selectedNappy = null;
-let binId = typeof JSONBIN_BIN !== "undefined" && JSONBIN_BIN !== "PASTE_BIN_ID_HERE_OR_LEAVE_BLANK" ? JSONBIN_BIN : null;
+let trendDays = 7;
+let logFilter = "today";
 let charts = {};
 
+function setLogFilter(filter, btn) {
+  logFilter = filter;
+  document.querySelectorAll("#page-recent .preset-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  renderRecent();
+}
+let editingIdx = null;
+
 // ---- Name screen ----
-document.getElementById("nameInput").addEventListener("input", function() {
-  document.getElementById("nameBtn").disabled = !this.value.trim();
+const nameInput = document.getElementById("nameInput");
+nameInput.addEventListener("input", () => {
+  document.getElementById("nameBtn").disabled = !nameInput.value.trim();
 });
-document.getElementById("nameInput").addEventListener("keydown", function(e) {
-  if (e.key === "Enter" && this.value.trim()) startApp();
+nameInput.addEventListener("keydown", e => { if (e.key === "Enter" && nameInput.value.trim()) startApp(); });
+
+// Restore name from localStorage
+window.addEventListener("load", () => {
+  const saved = localStorage.getItem("ll_who");
+  if (saved) { WHO = saved; launchApp(); }
 });
 
 async function startApp() {
-  WHO = document.getElementById("nameInput").value.trim();
+  WHO = nameInput.value.trim();
   if (!WHO) return;
+  localStorage.setItem("ll_who", WHO);
+  launchApp();
+}
+
+async function launchApp() {
   document.getElementById("overlay").style.display = "none";
   document.getElementById("app").style.display = "block";
+  renderHomeShell();
   await loadData();
   renderHome();
 }
 
-// ---- JSONBin ----
+// ---- Toast ----
+let toastTimer;
+function showToast(msg, type) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = "toast " + type;
+  clearTimeout(toastTimer);
+  if (type !== "saving") toastTimer = setTimeout(() => t.className = "toast", 2500);
+}
+function hideToast() { document.getElementById("toast").className = "toast"; }
+
+// ---- Data ----
 async function loadData() {
   if (!WORKER_URL || WORKER_URL === "PASTE_YOUR_WORKER_URL_HERE") {
     entries = JSON.parse(localStorage.getItem("ll_entries") || "[]");
     return;
   }
   try {
-    const r = await fetch(WORKER_URL, {
-      headers: { "X-App-Secret": APP_SECRET }
-    });
+    const r = await fetch(WORKER_URL, { headers: { "X-App-Secret": APP_SECRET } });
     if (!r.ok) throw new Error("Auth failed");
     const d = await r.json();
     entries = d.entries || [];
+    localStorage.setItem("ll_entries", JSON.stringify(entries));
   } catch(e) {
+    showToast("⚠️ Couldn't load from server - showing local data", "error");
     entries = JSON.parse(localStorage.getItem("ll_entries") || "[]");
   }
 }
 
 async function saveData() {
-  showToast();
+  showToast("Saving…", "saving");
   localStorage.setItem("ll_entries", JSON.stringify(entries));
   if (!WORKER_URL || WORKER_URL === "PASTE_YOUR_WORKER_URL_HERE") { hideToast(); return; }
   try {
-    await fetch(WORKER_URL, {
+    const r = await fetch(WORKER_URL, {
       method: "PUT",
       headers: { "Content-Type": "application/json", "X-App-Secret": APP_SECRET },
       body: JSON.stringify({ entries })
     });
-  } catch(e) {}
-  hideToast();
+    if (!r.ok) throw new Error("Save failed");
+    showToast("✓ Saved", "success");
+  } catch(e) {
+    showToast("⚠️ Save failed - entry kept locally", "error");
+  }
 }
 
-function showToast() { document.getElementById("toast").style.display = "block"; }
-function hideToast() { document.getElementById("toast").style.display = "none"; }
+// ---- Refresh ----
+async function refreshData() {
+  showToast("Refreshing…", "saving");
+  await loadData();
+  renderHome();
+  showToast("✓ Updated", "success");
+}
 
 // ---- Tabs ----
 function showTab(name, btn) {
@@ -272,6 +304,14 @@ function timeAgo(ts) {
 }
 function fmtTime(ts) { return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); }
 function fmtDate(ts) { return new Date(ts).toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" }); }
+function fmtFull(ts) {
+  const now = new Date(), d = new Date(ts);
+  const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  if (d.toDateString() === now.toDateString()) return "today " + time;
+  const yest = new Date(); yest.setDate(yest.getDate() - 1);
+  if (d.toDateString() === yest.toDateString()) return "yesterday " + time;
+  return d.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" }) + " " + time;
+}
 function entryLabel(e) {
   if (e.type === "feed") return e.ml + "ml (" + e.ebm + "ml EBM, " + e.formula + "ml formula)";
   if (e.type === "pump") return e.ml + "ml pumped";
@@ -279,12 +319,101 @@ function entryLabel(e) {
   return "";
 }
 
+// ---- Home ----
+function renderHomeShell() {
+  document.getElementById("page-home").innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h2 style="font-size:22px;color:#e2e8f0">Bowen's Business 🌙</h2>
+      <button onclick="refreshData()" style="background:none;border:none;color:#475569;font-size:22px;cursor:pointer;padding:4px">↻</button>
+    </div>
+    <div id="today-summary" style="margin-bottom:16px"></div>
+    <div class="card" style="display:flex;align-items:center;justify-content:space-between">
+      <div><div style="font-size:17px;font-weight:600;margin-bottom:3px">🍼 Feed</div><div id="last-feed" style="font-size:14px;color:#94a3b8">No entries yet</div></div>
+      <button class="btn" style="background:#3b82f6;color:#fff;flex-shrink:0" onclick="openModal('feed')">Log</button>
+    </div>
+    <div class="card" style="display:flex;align-items:center;justify-content:space-between">
+      <div><div style="font-size:17px;font-weight:600;margin-bottom:3px">👶 Nappy</div><div id="last-nappy" style="font-size:14px;color:#94a3b8">No entries yet</div></div>
+      <button class="btn" style="background:#22c55e;color:#fff;flex-shrink:0" onclick="openModal('nappy')">Log</button>
+    </div>
+    <div class="card" style="display:flex;align-items:center;justify-content:space-between">
+      <div><div style="font-size:17px;font-weight:600;margin-bottom:3px">🤱 Pump</div><div id="last-pump" style="font-size:14px;color:#94a3b8">No entries yet</div></div>
+      <button class="btn" style="background:#ec4899;color:#fff;flex-shrink:0" onclick="openModal('pump')">Log</button>
+    </div>`;
+}
+
+function renderHome() {
+  ["feed","nappy","pump"].forEach(type => {
+    const el = document.getElementById("last-" + type);
+    if (!el) return;
+    const e = entries.find(x => x.type === type);
+    const typeNames = { feed: "feed", nappy: "nappy", pump: "pump" };
+    if (e) {
+      el.innerHTML = "<span style='font-size:14px;color:#818cf8;font-weight:600'>Last " + typeNames[type] + " " + fmtFull(e.ts) + "</span>";
+    } else {
+      el.textContent = "No entries yet";
+    }
+  });
+  // Today summary
+  const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+  const today = entries.filter(e => e.ts >= todayStart.getTime());
+  const feedMl = today.filter(e => e.type==="feed").reduce((s,e) => s+(e.ml||0), 0);
+  const feedCount = today.filter(e => e.type==="feed").length;
+  const nappyCount = today.filter(e => e.type==="nappy").length;
+  const pumpMl = today.filter(e => e.type==="pump").reduce((s,e) => s+(e.ml||0), 0);
+  const el = document.getElementById("today-summary");
+  if (el && today.length > 0) {
+    el.innerHTML = `
+      <div style="background:linear-gradient(135deg,#1a1a3e,#1e2a3a);border:1px solid #3b4a6b;border-radius:14px;padding:16px;margin-bottom:4px">
+        <div style="font-size:12px;color:#818cf8;margin-bottom:12px;font-weight:700;letter-spacing:0.08em">TODAY</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">
+          <div><div style="font-size:22px;font-weight:700;color:#60a5fa">${feedCount}</div><div style="font-size:11px;color:#64748b;margin-top:1px">feeds</div><div style="font-size:13px;color:#94a3b8;margin-top:2px">${feedMl}ml</div></div>
+          <div style="border-left:1px solid #2e3a52;border-right:1px solid #2e3a52"><div style="font-size:22px;font-weight:700;color:#4ade80">${nappyCount}</div><div style="font-size:11px;color:#64748b;margin-top:1px">nappies</div></div>
+          <div><div style="font-size:22px;font-weight:700;color:#f472b6">${pumpMl}ml</div><div style="font-size:11px;color:#64748b;margin-top:1px">pumped</div></div>
+        </div>
+      </div>`;
+  } else if (el) {
+    el.innerHTML = "";
+  }
+}
+
 // ---- Modals ----
-function openModal(type) {
-  if (type === "nappy") { selectedNappy = null; document.querySelectorAll(".nappy-opt").forEach(b => b.classList.remove("selected")); document.getElementById("nappy-save-btn").disabled = true; }
+function nowLocal() {
+  const d = new Date(); d.setSeconds(0,0);
+  return d.toISOString().slice(0,16);
+}
+function tsFromInput(inputId, fallbackTs) {
+  const v = document.getElementById(inputId).value;
+  return v ? new Date(v).getTime() : (fallbackTs || Date.now());
+}
+
+function openModal(type, idx) {
+  editingIdx = idx !== undefined ? idx : null;
+  const existing = editingIdx !== null ? entries[editingIdx] : null;
+  const tsVal = existing ? new Date(existing.ts).toISOString().slice(0,16) : nowLocal();
+
+  if (type === "nappy") {
+    selectedNappy = null;
+    document.querySelectorAll(".nappy-opt").forEach(b => b.classList.remove("selected"));
+    document.getElementById("nappy-save-btn").disabled = true;
+    document.getElementById("nappy-modal-title").textContent = editingIdx !== null ? "👶 Edit Nappy" : "👶 Nappy";
+    document.getElementById("nappy-ts").value = tsVal;
+    if (existing) selectNappy(existing.nappyType);
+  }
+  if (type === "feed") {
+    document.getElementById("feed-modal-title").textContent = editingIdx !== null ? "🍼 Edit Feed" : "🍼 Feed";
+    document.getElementById("feed-save-btn").textContent = editingIdx !== null ? "Update" : "Save";
+    document.getElementById("feed-ts").value = tsVal;
+    if (existing) { document.getElementById("feed-total").value = existing.ml; document.getElementById("feed-ebm").value = existing.ebm; }
+    updateFeedSliders();
+  }
+  if (type === "pump") {
+    document.getElementById("pump-modal-title").textContent = editingIdx !== null ? "🤱 Edit Pump" : "🤱 Pump";
+    document.getElementById("pump-ts").value = tsVal;
+    if (existing) { document.getElementById("pump-slider").value = existing.ml; document.getElementById("pump-val").textContent = existing.ml + "ml"; }
+  }
   document.getElementById("modal-" + type).style.display = "flex";
 }
-function closeModal(type) { document.getElementById("modal-" + type).style.display = "none"; }
+function closeModal(type) { document.getElementById("modal-" + type).style.display = "none"; editingIdx = null; }
 function confirmReset() { document.getElementById("modal-reset").style.display = "flex"; }
 
 // ---- Feed ----
@@ -302,10 +431,11 @@ function updateFeedSliders() {
 async function saveFeed() {
   const ml = +document.getElementById("feed-total").value;
   const ebm = +document.getElementById("feed-ebm").value;
-  entries.unshift({ type: "feed", ml, ebm, formula: ml - ebm, ts: Date.now(), who: WHO });
-  closeModal("feed");
-  renderHome();
-  await saveData();
+  const ts = tsFromInput("feed-ts");
+  const entry = { type: "feed", ml, ebm, formula: ml - ebm, ts, who: WHO };
+  if (editingIdx !== null) entries[editingIdx] = entry; else entries.unshift(entry);
+  entries.sort((a,b) => b.ts - a.ts);
+  closeModal("feed"); renderHome(); renderRecent(); await saveData();
 }
 
 // ---- Nappy ----
@@ -316,19 +446,21 @@ function selectNappy(type) {
   document.getElementById("nappy-save-btn").disabled = false;
 }
 async function saveNappy() {
-  entries.unshift({ type: "nappy", nappyType: selectedNappy, ts: Date.now(), who: WHO });
-  closeModal("nappy");
-  renderHome();
-  await saveData();
+  const ts = tsFromInput("nappy-ts");
+  const entry = { type: "nappy", nappyType: selectedNappy, ts, who: WHO };
+  if (editingIdx !== null) entries[editingIdx] = entry; else entries.unshift(entry);
+  entries.sort((a,b) => b.ts - a.ts);
+  closeModal("nappy"); renderHome(); renderRecent(); await saveData();
 }
 
 // ---- Pump ----
 async function savePump() {
   const ml = +document.getElementById("pump-slider").value;
-  entries.unshift({ type: "pump", ml, ts: Date.now(), who: WHO });
-  closeModal("pump");
-  renderHome();
-  await saveData();
+  const ts = tsFromInput("pump-ts");
+  const entry = { type: "pump", ml, ts, who: WHO };
+  if (editingIdx !== null) entries[editingIdx] = entry; else entries.unshift(entry);
+  entries.sort((a,b) => b.ts - a.ts);
+  closeModal("pump"); renderHome(); renderRecent(); await saveData();
 }
 
 // ---- Reset ----
@@ -336,45 +468,65 @@ async function doReset() {
   entries = [];
   closeModal("reset");
   renderHome();
+  renderRecent();
   await saveData();
 }
 
-// ---- Render Home ----
-function renderHome() {
-  ["feed","nappy","pump"].forEach(type => {
-    const e = entries.find(x => x.type === type);
-    const el = document.getElementById("last-" + type);
-    if (e) {
-      el.innerHTML = entryLabel(e) + " · " + timeAgo(e.ts) + "<br><span style='font-size:12px;color:#64748b'>by " + e.who + "</span>";
-    } else {
-      el.textContent = "No entries yet";
-    }
-  });
-}
-
-// ---- Render Recent ----
+// ---- Recent ----
 function renderRecent() {
   const list = document.getElementById("recent-list");
-  if (!entries.length) { list.innerHTML = "<p style='color:#475569'>No entries yet.</p>"; return; }
-  list.innerHTML = entries.slice(0, 20).map((e, i) => `
-    <div class="entry-row">
-      <div style="flex:1">
-        <div class="entry-main">${{feed:"🍼",nappy:"👶",pump:"🤱"}[e.type]} ${entryLabel(e)}</div>
-        <div class="entry-sub">by ${e.who}</div>
+  if (!list) return;
+
+  let filtered;
+  if (logFilter === "today") {
+    const start = new Date(); start.setHours(0,0,0,0);
+    filtered = entries.filter(e => e.ts >= start.getTime());
+  } else if (logFilter === 0) {
+    filtered = entries;
+  } else {
+    const cutoff = Date.now() - logFilter * 86400000;
+    filtered = entries.filter(e => e.ts >= cutoff);
+  }
+
+  if (!filtered.length) { list.innerHTML = "<p style='color:#475569'>No entries for this period.</p>"; return; }
+  list.innerHTML = filtered.map((e, i) => {
+    const globalIdx = entries.indexOf(e);
+    const bgColor = "#1e1e2e";
+    const borderColor = "#2e2e42";
+    let volume = "", ratio = "";
+    if (e.type === "feed") { volume = e.ml + "ml"; ratio = e.ebm + "ml EBM · " + e.formula + "ml formula"; }
+    else if (e.type === "pump") { volume = e.ml + "ml"; }
+    else if (e.type === "nappy") { volume = e.nappyType.charAt(0).toUpperCase() + e.nappyType.slice(1); }
+    const typeLabel = { feed: "🍼 Feed", nappy: "👶 Nappy", pump: "🤱 Pump" }[e.type];
+    return `
+    <div style="background:${bgColor};border:1.5px solid ${borderColor};border-radius:14px;padding:14px 16px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+        <span style="font-size:18px;font-weight:700;color:#e2e8f0">${typeLabel}</span>
+        <span style="font-size:16px;font-weight:700;color:#e2e8f0">${fmtTime(e.ts)}</span>
       </div>
-      <div class="entry-time">
-        <div>${fmtTime(e.ts)}</div>
-        <div>${fmtDate(e.ts)}</div>
-        <div id="del-${i}">
-          <button class="remove-btn" onclick="showConfirm(${i})">Remove</button>
+      <div style="display:flex;justify-content:space-between;align-items:flex-end">
+        <div>
+          ${volume ? `<div style="font-size:15px;color:#e2e8f0;margin-bottom:2px">${volume}</div>` : ""}
+          ${ratio ? `<div style="font-size:13px;color:#64748b">${ratio}</div>` : ""}
+          <div style="font-size:12px;color:#475569;margin-top:4px">${fmtDate(e.ts)} · ${timeAgo(e.ts)} · by ${e.who}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;margin-left:12px;flex-shrink:0">
+          <button class="remove-btn" style="color:#818cf8;border-color:#818cf8" onclick="editEntry(${globalIdx})">Edit</button>
+          <div id="del-${globalIdx}"><button class="remove-btn" onclick="showConfirm(${globalIdx})">Remove</button></div>
         </div>
       </div>
-    </div>`).join("");
+    </div>`;
+  }).join("");
+}
+
+function editEntry(i) {
+  const e = entries[i];
+  openModal(e.type, i);
 }
 
 function showConfirm(i) {
   document.getElementById("del-" + i).innerHTML = `
-    <div class="confirm-row">
+    <div style="display:flex;gap:6px;justify-content:flex-end">
       <button style="font-size:12px;padding:4px 8px;border-radius:8px;border:1px solid #2e2e42;background:#2e2e42;color:#94a3b8;cursor:pointer" onclick="renderRecent()">Keep</button>
       <button style="font-size:12px;padding:4px 8px;border-radius:8px;border:none;background:#ef4444;color:#fff;cursor:pointer" onclick="deleteEntry(${i})">Delete</button>
     </div>`;
@@ -387,35 +539,64 @@ async function deleteEntry(i) {
   await saveData();
 }
 
-// ---- Render Trends ----
-const CHART_OPTS = {
+// ---- Trends ----
+function setPreset(days, btn) {
+  trendDays = days;
+  document.querySelectorAll(".preset-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  renderTrends();
+}
+
+function periodData() {
+  const useWeeks = trendDays === 0;
+  if (useWeeks) {
+    if (!entries.length) return [];
+    const oldest = Math.min(...entries.map(e => e.ts));
+    const weekStart = d => { const x = new Date(d); x.setHours(0,0,0,0); x.setDate(x.getDate() - x.getDay()); return x.getTime(); };
+    const weeks = [];
+    let w = weekStart(oldest);
+    while (w <= Date.now()) { weeks.push(w); w += 7 * 86400000; }
+    return weeks.map(ws => {
+      const we = ws + 7 * 86400000;
+      const day = entries.filter(e => e.ts >= ws && e.ts < we);
+      const d = new Date(ws);
+      const label = d.toLocaleDateString([], { day: "numeric", month: "short" });
+      return buildPeriod(label, day);
+    });
+  } else {
+    return Array.from({ length: trendDays }, (_, i) => {
+      const d = new Date(); d.setDate(d.getDate() - (trendDays - 1 - i)); d.setHours(0,0,0,0);
+      const start = d.getTime(), end = start + 86400000;
+      const label = trendDays <= 7
+        ? d.toLocaleDateString([], { weekday: "short" })
+        : d.toLocaleDateString([], { day: "numeric", month: "short" });
+      return buildPeriod(label, entries.filter(e => e.ts >= start && e.ts < end));
+    });
+  }
+}
+
+function buildPeriod(label, day) {
+  const feeds = day.filter(e => e.type === "feed");
+  const feedMl = feeds.reduce((s,e) => s+(e.ml||0), 0);
+  const ebmMl = feeds.reduce((s,e) => s+(e.ebm||0), 0);
+  const formulaMl = feeds.reduce((s,e) => s+(e.formula||0), 0);
+  const pumpMl = day.filter(e => e.type==="pump").reduce((s,e) => s+(e.ml||0), 0);
+  const feedCount = feeds.length;
+  const avgFeed = feedCount ? Math.round(feedMl / feedCount) : 0;
+  const wet = day.filter(e => e.type==="nappy" && e.nappyType==="wet").length;
+  const dirty = day.filter(e => e.type==="nappy" && e.nappyType==="dirty").length;
+  const both = day.filter(e => e.type==="nappy" && e.nappyType==="both").length;
+  return { label, feedMl, ebmMl, formulaMl, pumpMl, feedCount, avgFeed, wet, dirty, both };
+}
+
+const COPTS = {
   responsive: true,
   plugins: { legend: { labels: { color: "#94a3b8", font: { size: 12 } } } },
   scales: {
-    x: { ticks: { color: "#64748b", font: { size: 12 } }, grid: { color: "#1e1e2e" } },
-    y: { ticks: { color: "#64748b", font: { size: 12 } }, grid: { color: "#2e2e42" } }
+    x: { ticks: { color: "#64748b", font: { size: 11 } }, grid: { color: "#1e1e2e" } },
+    y: { ticks: { color: "#64748b", font: { size: 11 } }, grid: { color: "#2e2e42" } }
   }
 };
-
-function dayData() {
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(); d.setDate(d.getDate() - (6 - i)); d.setHours(0,0,0,0);
-    const start = d.getTime(), end = start + 86400000;
-    const day = entries.filter(e => e.ts >= start && e.ts < end);
-    const feeds = day.filter(e => e.type === "feed");
-    const feedMl = feeds.reduce((s,e) => s + (e.ml||0), 0);
-    const ebmMl = feeds.reduce((s,e) => s + (e.ebm||0), 0);
-    const formulaMl = feeds.reduce((s,e) => s + (e.formula||0), 0);
-    const pumpMl = day.filter(e => e.type === "pump").reduce((s,e) => s + (e.ml||0), 0);
-    const feedCount = feeds.length;
-    const avgFeed = feedCount ? Math.round(feedMl / feedCount) : 0;
-    const wet = day.filter(e => e.type === "nappy" && e.nappyType === "wet").length;
-    const dirty = day.filter(e => e.type === "nappy" && e.nappyType === "dirty").length;
-    const both = day.filter(e => e.type === "nappy" && e.nappyType === "both").length;
-    const label = d.toLocaleDateString([], { weekday: "short" });
-    return { label, feedMl, ebmMl, formulaMl, pumpMl, feedCount, avgFeed, wet, dirty, both };
-  });
-}
 
 function mkChart(id, config) {
   if (charts[id]) charts[id].destroy();
@@ -423,32 +604,38 @@ function mkChart(id, config) {
 }
 
 function renderTrends() {
-  const d = dayData();
+  const d = periodData();
+  if (!d.length) return;
   const labels = d.map(x => x.label);
-  const br = [4,4,0,0];
+  const totalFeed = d.reduce((s,x) => s+x.feedMl, 0);
+  const totalPump = d.reduce((s,x) => s+x.pumpMl, 0);
+  const totalNappies = d.reduce((s,x) => s+x.wet+x.dirty+x.both, 0);
+  const totalFeeds = d.reduce((s,x) => s+x.feedCount, 0);
+  const avgFeed = totalFeeds ? Math.round(totalFeed / totalFeeds) : 0;
+  document.getElementById("trends-summary").innerHTML = `
+    <div class="summary-card"><div class="val">${totalFeed}ml</div><div class="lbl">Total fed</div></div>
+    <div class="summary-card"><div class="val">${totalPump}ml</div><div class="lbl">Total pumped</div></div>
+    <div class="summary-card"><div class="val">${totalNappies}</div><div class="lbl">Nappies</div></div>
+    <div class="summary-card"><div class="val">${avgFeed}ml</div><div class="lbl">Avg feed size</div></div>`;
 
-  mkChart("c-feed", { type: "bar", data: { labels, datasets: [{ label: "Feed ml", data: d.map(x=>x.feedMl), backgroundColor: "#3b82f6", borderRadius: 4 }] }, options: CHART_OPTS });
-
-  mkChart("c-ebm", { type: "bar", data: { labels, datasets: [
-    { label: "EBM", data: d.map(x=>x.ebmMl), backgroundColor: "#818cf8", stack: "a" },
-    { label: "Formula", data: d.map(x=>x.formulaMl), backgroundColor: "#f59e0b", stack: "a", borderRadius: 4 }
-  ]}, options: { ...CHART_OPTS, scales: { ...CHART_OPTS.scales, x: { ...CHART_OPTS.scales.x, stacked: true }, y: { ...CHART_OPTS.scales.y, stacked: true } } } });
-
-  mkChart("c-pump", { type: "bar", data: { labels, datasets: [{ label: "Pumped ml", data: d.map(x=>x.pumpMl), backgroundColor: "#ec4899", borderRadius: 4 }] }, options: CHART_OPTS });
-
-  mkChart("c-nappy", { type: "bar", data: { labels, datasets: [
-    { label: "Wet", data: d.map(x=>x.wet), backgroundColor: "#38bdf8", stack: "a" },
-    { label: "Dirty", data: d.map(x=>x.dirty), backgroundColor: "#a78bfa", stack: "a" },
-    { label: "Both", data: d.map(x=>x.both), backgroundColor: "#34d399", stack: "a", borderRadius: 4 }
-  ]}, options: { ...CHART_OPTS, scales: { ...CHART_OPTS.scales, x: { ...CHART_OPTS.scales.x, stacked: true }, y: { ...CHART_OPTS.scales.y, stacked: true } } } });
-
-  mkChart("c-freq", { type: "bar", data: { labels, datasets: [
-    { label: "Feeds", data: d.map(x=>x.feedCount), backgroundColor: "#3b82f6", borderRadius: 4, yAxisID: "y" },
-    { type: "line", label: "Avg ml", data: d.map(x=>x.avgFeed), borderColor: "#fbbf24", backgroundColor: "#fbbf24", pointRadius: 4, yAxisID: "y2", tension: 0.3 }
-  ]}, options: { ...CHART_OPTS, scales: {
-    x: CHART_OPTS.scales.x,
-    y: { ...CHART_OPTS.scales.y, position: "left" },
-    y2: { ticks: { color: "#64748b", font: { size: 12 } }, grid: { drawOnChartArea: false }, position: "right" }
+  mkChart("c-feed", { type:"bar", data:{ labels, datasets:[{ label:"Feed ml", data:d.map(x=>x.feedMl), backgroundColor:"#3b82f6", borderRadius:4 }]}, options:COPTS });
+  mkChart("c-ebm", { type:"bar", data:{ labels, datasets:[
+    { label:"EBM", data:d.map(x=>x.ebmMl), backgroundColor:"#818cf8", stack:"a" },
+    { label:"Formula", data:d.map(x=>x.formulaMl), backgroundColor:"#f59e0b", stack:"a", borderRadius:4 }
+  ]}, options:{...COPTS, scales:{...COPTS.scales, x:{...COPTS.scales.x,stacked:true}, y:{...COPTS.scales.y,stacked:true}}} });
+  mkChart("c-pump", { type:"bar", data:{ labels, datasets:[{ label:"Pumped ml", data:d.map(x=>x.pumpMl), backgroundColor:"#ec4899", borderRadius:4 }]}, options:COPTS });
+  mkChart("c-nappy", { type:"bar", data:{ labels, datasets:[
+    { label:"Wet", data:d.map(x=>x.wet), backgroundColor:"#38bdf8", stack:"a" },
+    { label:"Dirty", data:d.map(x=>x.dirty), backgroundColor:"#a78bfa", stack:"a" },
+    { label:"Both", data:d.map(x=>x.both), backgroundColor:"#34d399", stack:"a", borderRadius:4 }
+  ]}, options:{...COPTS, scales:{...COPTS.scales, x:{...COPTS.scales.x,stacked:true}, y:{...COPTS.scales.y,stacked:true}}} });
+  mkChart("c-freq", { type:"bar", data:{ labels, datasets:[
+    { label:"Feeds", data:d.map(x=>x.feedCount), backgroundColor:"#3b82f6", borderRadius:4, yAxisID:"y" },
+    { type:"line", label:"Avg ml", data:d.map(x=>x.avgFeed), borderColor:"#fbbf24", backgroundColor:"#fbbf24", pointRadius:4, yAxisID:"y2", tension:0.3 }
+  ]}, options:{...COPTS, scales:{
+    x:COPTS.scales.x,
+    y:{...COPTS.scales.y, position:"left"},
+    y2:{ticks:{color:"#64748b",font:{size:11}}, grid:{drawOnChartArea:false}, position:"right"}
   }}});
 }
 </script>
