@@ -1,14 +1,19 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#0f0f1a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Bowen's Business">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.png">
 <title>Bowen's Business 🌙</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #0f0f1a; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 480px; margin: 0 auto; min-height: 100vh; padding-bottom: 72px; }
+  body { background: #0f0f1a; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 480px; margin: 0 auto; min-height: 100vh; padding-bottom: 80px; overflow-x: hidden; }
   .card { background: #1e1e2e; border: 1px solid #2e2e42; border-radius: 16px; padding: 16px; margin-bottom: 14px; }
   .btn { border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; padding: 13px 18px; }
   .btn-primary { background: #818cf8; color: #fff; width: 100%; font-size: 16px; padding: 14px; }
@@ -19,8 +24,8 @@
   input:focus { border-color: #818cf8; }
   input::placeholder { color: #475569; }
   input[type=datetime-local] { width: 100%; padding: 13px 14px; border: 1.5px solid #2e2e42; border-radius: 12px; font-size: 15px; background: #16162a; color: #e2e8f0; outline: none; margin-bottom: 0; color-scheme: dark; }
-  nav { position: fixed; bottom: 0; left: 0; right: 0; background: #1e1e2e; border-top: 1px solid #2e2e42; display: flex; max-width: 480px; margin: 0 auto; z-index: 50; }
-  nav button { flex: 1; padding: 13px 0; background: none; border: none; font-size: 13px; color: #475569; cursor: pointer; font-weight: 400; }
+  nav { position: fixed; bottom: 0; left: 0; right: 0; background: #1e1e2e; border-top: 1px solid #2e2e42; display: flex; max-width: 480px; margin: 0 auto; z-index: 50; padding-bottom: env(safe-area-inset-bottom); }
+  nav button { flex: 1; padding: 16px 0; background: none; border: none; font-size: 15px; color: #475569; cursor: pointer; font-weight: 400; }
   nav button.active { color: #818cf8; font-weight: 700; }
   .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: flex-end; justify-content: center; z-index: 100; }
   .modal { background: #1e1e2e; border: 1px solid #2e2e42; border-radius: 20px 20px 0 0; padding: 24px 20px 36px; width: 100%; max-width: 480px; }
@@ -28,8 +33,12 @@
   .modal-center { align-items: center; }
   .modal-center .modal { border-radius: 20px; max-width: 340px; }
   .row { display: flex; gap: 8px; }
-  .page { padding: 20px 16px; display: none; }
+  .page { padding: 20px 16px; display: none; animation: none; }
   .page.active { display: block; }
+  .page.slide-in-left { animation: slideInLeft 0.22s ease; }
+  .page.slide-in-right { animation: slideInRight 0.22s ease; }
+  @keyframes slideInLeft { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+  @keyframes slideInRight { from { opacity: 0; transform: translateX(-40px); } to { opacity: 1; transform: translateX(0); } }
   .toast { position: fixed; top: 0; left: 0; right: 0; text-align: center; font-size: 13px; padding: 6px 0; z-index: 200; display: none; font-weight: 600; }
   .toast.saving { background: #818cf8; color: #fff; display: block; }
   .toast.success { background: #22c55e; color: #fff; display: block; }
@@ -58,7 +67,6 @@
   const WORKER_URL   = "https://crimson-field-cfbb.backupjwb.workers.dev/";
   const APP_SECRET   = "bowen";
 </script>
- 
 
 <div class="toast" id="toast"></div>
 
@@ -284,10 +292,38 @@ async function refreshData() {
 }
 
 // ---- Tabs ----
-function showTab(name, btn) {
-  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+const TAB_NAMES = ["home", "recent", "trends"];
+let currentTab = 0;
+let swipeStartX = null;
+
+document.addEventListener("touchstart", e => {
+  if (e.target.closest(".modal-backdrop")) return;
+  swipeStartX = e.touches[0].clientX;
+}, { passive: true });
+
+document.addEventListener("touchend", e => {
+  if (swipeStartX === null || e.target.closest(".modal-backdrop")) return;
+  const dx = e.changedTouches[0].clientX - swipeStartX;
+  swipeStartX = null;
+  if (Math.abs(dx) < 50) return;
+  const dir = dx < 0 ? "left" : "right";
+  const newTab = dx < 0
+    ? Math.min(currentTab + 1, TAB_NAMES.length - 1)
+    : Math.max(currentTab - 1, 0);
+  if (newTab === currentTab) return;
+  currentTab = newTab;
+  const btn = document.querySelectorAll("nav button")[currentTab];
+  showTab(TAB_NAMES[currentTab], btn, dir);
+}, { passive: true });
+
+function showTab(name, btn, direction) {
+  currentTab = TAB_NAMES.indexOf(name);
+  document.querySelectorAll(".page").forEach(p => { p.classList.remove("active","slide-in-left","slide-in-right"); });
   document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
-  document.getElementById("page-" + name).classList.add("active");
+  const page = document.getElementById("page-" + name);
+  page.classList.add("active");
+  if (direction === "left") page.classList.add("slide-in-left");
+  else if (direction === "right") page.classList.add("slide-in-right");
   btn.classList.add("active");
   if (name === "recent") renderRecent();
   if (name === "trends") renderTrends();
