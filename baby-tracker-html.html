@@ -7,8 +7,6 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Bowen's Business">
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon.png">
 <title>Bowen's Business 🌙</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
@@ -21,9 +19,10 @@
   .btn-secondary { background: #2e2e42; color: #94a3b8; width: 100%; font-size: 16px; padding: 14px; }
   .btn-danger { background: #ef4444; color: #fff; }
   input[type=text], input[type=number] { width: 100%; padding: 13px 14px; border: 1.5px solid #2e2e42; border-radius: 12px; font-size: 17px; background: #16162a; color: #e2e8f0; outline: none; }
+  input[type=datetime-local] { width: 100%; padding: 13px 14px; border: 1.5px solid #2e2e42; border-radius: 12px; font-size: 15px; background: #16162a; color: #e2e8f0; outline: none; color-scheme: dark; }
   input:focus { border-color: #818cf8; }
   input::placeholder { color: #475569; }
-  input[type=datetime-local] { width: 100%; padding: 13px 14px; border: 1.5px solid #2e2e42; border-radius: 12px; font-size: 15px; background: #16162a; color: #e2e8f0; outline: none; margin-bottom: 0; color-scheme: dark; }
+  input[type=range] { width: 100%; accent-color: #818cf8; cursor: pointer; }
   nav { position: fixed; bottom: 0; left: 0; right: 0; background: #1e1e2e; border-top: 1px solid #2e2e42; display: flex; max-width: 480px; margin: 0 auto; z-index: 50; padding-bottom: env(safe-area-inset-bottom); }
   nav button { flex: 1; padding: 16px 0; background: none; border: none; font-size: 15px; color: #475569; cursor: pointer; font-weight: 400; }
   nav button.active { color: #818cf8; font-weight: 700; }
@@ -33,7 +32,7 @@
   .modal-center { align-items: center; }
   .modal-center .modal { border-radius: 20px; max-width: 340px; }
   .row { display: flex; gap: 8px; }
-  .page { padding: 20px 16px; display: none; animation: none; }
+  .page { padding: 20px 16px; display: none; }
   .page.active { display: block; }
   .page.slide-in-left { animation: slideInLeft 0.22s ease; }
   .page.slide-in-right { animation: slideInRight 0.22s ease; }
@@ -48,17 +47,23 @@
   .slider-hint { display: flex; justify-content: space-between; font-size: 11px; color: #475569; margin-top: 2px; margin-bottom: 16px; }
   .nappy-opt { padding: 14px; border-radius: 12px; border: 2px solid #2e2e42; background: #16162a; font-size: 16px; cursor: pointer; color: #e2e8f0; width: 100%; margin-bottom: 10px; text-align: left; }
   .nappy-opt.selected { border-color: #818cf8; background: #2d2b55; font-weight: 600; }
-  .remove-btn { font-size: 12px; padding: 4px 8px; border-radius: 8px; border: 1px solid #2e2e42; background: none; color: #475569; cursor: pointer; margin-top: 6px; display: block; }
-  .chart-wrap { margin-bottom: 28px; }
-  .chart-wrap h3 { font-size: 15px; color: #94a3b8; margin-bottom: 12px; }
+  .remove-btn { font-size: 12px; padding: 4px 8px; border-radius: 8px; border: 1px solid #2e2e42; background: none; color: #475569; cursor: pointer; margin-top: 4px; display: block; white-space: nowrap; }
+  .filter-row { display: flex; gap: 8px; margin-bottom: 10px; }
   .preset-btn { flex:1; padding:8px 0; background:#1e1e2e; border:1.5px solid #2e2e42; border-radius:10px; color:#64748b; font-size:14px; font-weight:600; cursor:pointer; }
   .preset-btn.active { background:#2d2b55; border-color:#818cf8; color:#818cf8; }
+  .chart-wrap { margin-bottom: 28px; }
+  .chart-wrap h3 { font-size: 15px; color: #94a3b8; margin-bottom: 12px; }
   .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
   .summary-card { background: #1e1e2e; border: 1px solid #2e2e42; border-radius: 12px; padding: 12px 14px; }
   .summary-card .val { font-size: 22px; font-weight: 700; color: #e2e8f0; }
   .summary-card .lbl { font-size: 12px; color: #64748b; margin-top: 2px; }
-  #overlay { position: fixed; inset: 0; background: #0f0f1a; display: flex; align-items: center; justify-content: center; z-index: 300; }
+  #overlay { position: fixed; inset: 0; background: #0f0f1a; display: flex; align-items: center; justify-content: center; z-index: 300; padding: 28px; }
   #overlay .inner { background: #1e1e2e; border: 1px solid #2e2e42; border-radius: 24px; padding: 36px 28px; width: 100%; max-width: 360px; }
+  .entry-card { background: #1e1e2e; border: 1.5px solid #2e2e42; border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; }
+  .pagination { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; }
+  .pagination button { background: #2e2e42; border: none; border-radius: 10px; color: #e2e8f0; padding: 8px 16px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .pagination button:disabled { opacity: 0.3; cursor: not-allowed; }
+  .pagination span { font-size: 13px; color: #64748b; }
 </style>
 </head>
 <body>
@@ -66,11 +71,12 @@
   <script>
   const WORKER_URL   = "https://crimson-field-cfbb.backupjwb.workers.dev/";
   const APP_SECRET   = "bowen";
+  const PAGE_SIZE  = 20;
+  const MAX_ENTRIES = 4000;
 </script>
 
 <div class="toast" id="toast"></div>
 
-<!-- Name screen -->
 <div id="overlay">
   <div class="inner">
     <div style="font-size:40px;margin-bottom:16px">🌙</div>
@@ -79,42 +85,43 @@
     <label style="display:block;font-size:15px;font-weight:600;color:#e2e8f0;margin-bottom:8px">Your name</label>
     <input type="text" id="nameInput" placeholder="e.g. Joe" style="margin-bottom:16px">
     <button class="btn btn-primary" id="nameBtn" disabled onclick="startApp()">Get started</button>
-
   </div>
 </div>
 
-<!-- App -->
 <div id="app" style="display:none">
-
-  <!-- HOME -->
   <div class="page active" id="page-home"></div>
 
-  <!-- RECENT -->
   <div class="page" id="page-recent">
-    <h2 style="font-size:20px;color:#e2e8f0;margin-bottom:16px">Log</h2>
-    <div style="display:flex;gap:8px;margin-bottom:16px">
-      <button class="preset-btn active" onclick="setLogFilter('today',this)">Today</button>
-      <button class="preset-btn" onclick="setLogFilter(7,this)">7d</button>
-      <button class="preset-btn" onclick="setLogFilter(30,this)">30d</button>
-      <button class="preset-btn" onclick="setLogFilter(0,this)">All</button>
+    <h2 style="font-size:20px;color:#e2e8f0;margin-bottom:14px">Log</h2>
+    <div class="filter-row" id="date-filters">
+      <button class="preset-btn active" data-filter="today" onclick="setLogFilter('today',this)">Today</button>
+      <button class="preset-btn" data-filter="7" onclick="setLogFilter(7,this)">7d</button>
+      <button class="preset-btn" data-filter="30" onclick="setLogFilter(30,this)">30d</button>
+      <button class="preset-btn" data-filter="0" onclick="setLogFilter(0,this)">All</button>
+    </div>
+    <div class="filter-row" id="type-filters">
+      <button class="preset-btn active" data-type="all" onclick="setTypeFilter('all',this)">All</button>
+      <button class="preset-btn" data-type="feed" onclick="setTypeFilter('feed',this)">🍼</button>
+      <button class="preset-btn" data-type="nappy" onclick="setTypeFilter('nappy',this)">🩲</button>
+      <button class="preset-btn" data-type="pump" onclick="setTypeFilter('pump',this)">🤱</button>
     </div>
     <div id="recent-list"></div>
+    <div id="pagination-controls"></div>
   </div>
 
-  <!-- TRENDS -->
   <div class="page" id="page-trends">
     <h2 style="font-size:20px;color:#e2e8f0;margin-bottom:16px">Trends</h2>
-    <div style="display:flex;gap:8px;margin-bottom:20px">
+    <div class="filter-row">
       <button class="preset-btn active" onclick="setPreset(7,this)">7d</button>
       <button class="preset-btn" onclick="setPreset(14,this)">14d</button>
       <button class="preset-btn" onclick="setPreset(30,this)">30d</button>
       <button class="preset-btn" onclick="setPreset(0,this)">All</button>
     </div>
-    <div id="trends-summary" class="summary-grid"></div>
+    <div id="trends-summary" class="summary-grid" style="margin-top:16px"></div>
     <div class="chart-wrap"><h3>🍼 Total feed per day (ml)</h3><canvas id="c-feed"></canvas></div>
     <div class="chart-wrap"><h3>🍼 EBM vs formula (ml)</h3><canvas id="c-ebm"></canvas></div>
     <div class="chart-wrap"><h3>🤱 Pumped (ml)</h3><canvas id="c-pump"></canvas></div>
-    <div class="chart-wrap"><h3>👶 Nappies by type</h3><canvas id="c-nappy"></canvas></div>
+    <div class="chart-wrap"><h3>🩲 Nappies by type</h3><canvas id="c-nappy"></canvas></div>
     <div class="chart-wrap"><h3>🍼 Feed frequency + avg size</h3><canvas id="c-freq"></canvas></div>
   </div>
 
@@ -122,7 +129,7 @@
     <button class="active" onclick="showTab('home',this)">Home</button>
     <button onclick="showTab('recent',this)">Log</button>
     <button onclick="showTab('trends',this)">Trends</button>
-    <button onclick="confirmReset()">⚙️</button>
+    <button onclick="openSettings()">⚙️</button>
   </nav>
 </div>
 
@@ -140,7 +147,7 @@
       <span style="color:#94a3b8;font-size:14px">Formula</span>
       <span style="color:#818cf8;font-weight:700;font-size:15px" id="feed-formula-val">40ml</span>
     </div>
-    <label>Date &amp; time</label>
+    <label style="margin-bottom:6px;display:block;font-size:14px;color:#94a3b8">Date &amp; time</label>
     <input type="datetime-local" id="feed-ts" style="margin-bottom:16px">
     <div class="row">
       <button class="btn btn-secondary" onclick="closeModal('feed')">Cancel</button>
@@ -152,13 +159,13 @@
 <!-- NAPPY MODAL -->
 <div class="modal-backdrop" id="modal-nappy" style="display:none">
   <div class="modal">
-    <h2 id="nappy-modal-title">👶 Nappy</h2>
+    <h2 id="nappy-modal-title">🩲 Nappy</h2>
     <button class="nappy-opt" id="nopt-wet" onclick="selectNappy('wet')">Wet</button>
     <button class="nappy-opt" id="nopt-dirty" onclick="selectNappy('dirty')">Dirty</button>
     <button class="nappy-opt" id="nopt-both" onclick="selectNappy('both')">Both</button>
-    <label style="margin-top:4px">Date &amp; time</label>
+    <label style="margin-top:4px;margin-bottom:6px;display:block;font-size:14px;color:#94a3b8">Date &amp; time</label>
     <input type="datetime-local" id="nappy-ts" style="margin-bottom:16px">
-    <div class="row" style="margin-top:4px">
+    <div class="row">
       <button class="btn btn-secondary" onclick="closeModal('nappy')">Cancel</button>
       <button class="btn btn-primary" id="nappy-save-btn" disabled onclick="saveNappy()">Save</button>
     </div>
@@ -172,12 +179,26 @@
     <div class="slider-row"><label>Amount pumped</label><span class="slider-val" id="pump-val">60ml</span></div>
     <input type="range" min="0" max="300" step="5" value="60" id="pump-slider" oninput="document.getElementById('pump-val').textContent=this.value+'ml'">
     <div class="slider-hint"><span>0ml</span><span>300ml</span></div>
-    <label>Date &amp; time</label>
+    <label style="margin-bottom:6px;display:block;font-size:14px;color:#94a3b8">Date &amp; time</label>
     <input type="datetime-local" id="pump-ts" style="margin-bottom:16px">
-    <div class="row" style="margin-top:4px">
+    <div class="row">
       <button class="btn btn-secondary" onclick="closeModal('pump')">Cancel</button>
       <button class="btn btn-primary" onclick="savePump()">Save</button>
     </div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-backdrop modal-center" id="modal-settings" style="display:none">
+  <div class="modal">
+    <h2>⚙️ Settings</h2>
+    <div style="margin-bottom:16px">
+      <label style="display:block;font-size:14px;color:#94a3b8;margin-bottom:6px">Your name</label>
+      <input type="text" id="settings-name" placeholder="Enter name">
+    </div>
+    <button class="btn btn-primary" style="margin-bottom:10px" onclick="saveName()">Save name</button>
+    <button class="btn btn-secondary" style="margin-bottom:10px" onclick="closeModal('settings');refreshData()">↻ Refresh data</button>
+    <button class="btn" style="width:100%;padding:14px;background:#2a1a1a;color:#ef4444;border:1px solid #3a2020;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer" onclick="closeModal('settings');confirmReset()">Reset all data</button>
   </div>
 </div>
 
@@ -185,45 +206,60 @@
 <div class="modal-backdrop modal-center" id="modal-reset" style="display:none">
   <div class="modal">
     <h2>Reset all data?</h2>
-    <p style="color:#94a3b8;font-size:14px;margin-bottom:24px">This will permanently delete all entries for both users.</p>
+    <p style="color:#94a3b8;font-size:14px;margin-bottom:8px">This will permanently delete all <span id="reset-count" style="color:#ef4444;font-weight:700"></span> entries for both users.</p>
+    <p style="color:#64748b;font-size:13px;margin-bottom:24px">Type <strong style="color:#e2e8f0">reset</strong> to confirm.</p>
+    <input type="text" id="reset-confirm-input" placeholder="type reset" style="margin-bottom:12px">
     <div class="row">
-      <button class="btn btn-secondary" onclick="closeModal('reset')">Cancel</button>
-      <button class="btn btn-danger" style="flex:1;border-radius:12px;font-size:16px;font-weight:600" onclick="doReset()">Reset</button>
+      <button class="btn btn-secondary" onclick="closeModal('reset');document.getElementById('reset-confirm-input').value=''">Cancel</button>
+      <button class="btn btn-danger" id="reset-btn" style="flex:1;border-radius:12px;font-size:16px;font-weight:600" disabled onclick="doReset()">Reset</button>
     </div>
   </div>
 </div>
 
 <script>
+// ---- Constants ----
+const ICONS = { feed: "🍼", nappy: "🩲", pump: "🤱" };
+const TYPE_LABELS = { feed: "🍼 Feed", nappy: "🩲 Nappy", pump: "🤱 Pump" };
+const TYPE_NAMES = { feed: "feed", nappy: "nappy", pump: "pump" };
+const TAB_NAMES = ["home", "recent", "trends"];
+
+// ---- State ----
 let WHO = "";
 let entries = [];
 let selectedNappy = null;
 let trendDays = 7;
 let logFilter = "today";
-let charts = {};
-
-function setLogFilter(filter, btn) {
-  logFilter = filter;
-  document.querySelectorAll("#page-recent .preset-btn").forEach(b => b.classList.remove("active"));
-  btn.classList.add("active");
-  renderRecent();
-}
+let logTypeFilter = "all";
+let logPage = 0;
+let currentTab = 0;
 let editingIdx = null;
+let swipeStartX = null;
+let charts = {};
+let toastTimer = null;
 
-// ---- Name screen ----
-const nameInput = document.getElementById("nameInput");
-nameInput.addEventListener("input", () => {
-  document.getElementById("nameBtn").disabled = !nameInput.value.trim();
+// ---- Init ----
+document.getElementById("nameInput").addEventListener("input", function() {
+  document.getElementById("nameBtn").disabled = !this.value.trim();
 });
-nameInput.addEventListener("keydown", e => { if (e.key === "Enter" && nameInput.value.trim()) startApp(); });
+document.getElementById("nameInput").addEventListener("keydown", function(e) {
+  if (e.key === "Enter" && this.value.trim()) startApp();
+});
+document.getElementById("reset-confirm-input").addEventListener("input", function() {
+  document.getElementById("reset-btn").disabled = this.value.trim().toLowerCase() !== "reset";
+});
 
-// Restore name from localStorage
 window.addEventListener("load", () => {
   const saved = localStorage.getItem("ll_who");
   if (saved) { WHO = saved; launchApp(); }
 });
 
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && WHO) refreshData(true);
+});
+
+// ---- Auth ----
 async function startApp() {
-  WHO = nameInput.value.trim();
+  WHO = document.getElementById("nameInput").value.trim();
   if (!WHO) return;
   localStorage.setItem("ll_who", WHO);
   launchApp();
@@ -238,7 +274,6 @@ async function launchApp() {
 }
 
 // ---- Toast ----
-let toastTimer;
 function showToast(msg, type) {
   const t = document.getElementById("toast");
   t.textContent = msg;
@@ -256,11 +291,11 @@ async function loadData() {
   }
   try {
     const r = await fetch(WORKER_URL, { headers: { "X-App-Secret": APP_SECRET } });
-    if (!r.ok) throw new Error("Auth failed");
+    if (!r.ok) throw new Error();
     const d = await r.json();
-    entries = d.entries || [];
+    entries = (d.entries || []).slice(0, MAX_ENTRIES);
     localStorage.setItem("ll_entries", JSON.stringify(entries));
-  } catch(e) {
+  } catch {
     showToast("⚠️ Couldn't load from server - showing local data", "error");
     entries = JSON.parse(localStorage.getItem("ll_entries") || "[]");
   }
@@ -268,6 +303,8 @@ async function loadData() {
 
 async function saveData() {
   showToast("Saving…", "saving");
+  // Trim to cap before saving
+  if (entries.length > MAX_ENTRIES) entries = entries.slice(0, MAX_ENTRIES);
   localStorage.setItem("ll_entries", JSON.stringify(entries));
   if (!WORKER_URL || WORKER_URL === "PASTE_YOUR_WORKER_URL_HERE") { hideToast(); return; }
   try {
@@ -276,26 +313,23 @@ async function saveData() {
       headers: { "Content-Type": "application/json", "X-App-Secret": APP_SECRET },
       body: JSON.stringify({ entries })
     });
-    if (!r.ok) throw new Error("Save failed");
+    if (!r.ok) throw new Error();
     showToast("✓ Saved", "success");
-  } catch(e) {
+  } catch {
     showToast("⚠️ Save failed - entry kept locally", "error");
   }
 }
 
-// ---- Refresh ----
-async function refreshData() {
-  showToast("Refreshing…", "saving");
+async function refreshData(silent) {
+  if (!silent) showToast("Refreshing…", "saving");
   await loadData();
   renderHome();
-  showToast("✓ Updated", "success");
+  if (currentTab === 1) renderRecent();
+  if (currentTab === 2) renderTrends();
+  if (!silent) showToast("✓ Updated", "success");
 }
 
-// ---- Tabs ----
-const TAB_NAMES = ["home", "recent", "trends"];
-let currentTab = 0;
-let swipeStartX = null;
-
+// ---- Swipe ----
 document.addEventListener("touchstart", e => {
   if (e.target.closest(".modal-backdrop")) return;
   swipeStartX = e.touches[0].clientX;
@@ -307,25 +341,23 @@ document.addEventListener("touchend", e => {
   swipeStartX = null;
   if (Math.abs(dx) < 50) return;
   const dir = dx < 0 ? "left" : "right";
-  const newTab = dx < 0
-    ? Math.min(currentTab + 1, TAB_NAMES.length - 1)
-    : Math.max(currentTab - 1, 0);
+  const newTab = dx < 0 ? Math.min(currentTab + 1, TAB_NAMES.length - 1) : Math.max(currentTab - 1, 0);
   if (newTab === currentTab) return;
   currentTab = newTab;
-  const btn = document.querySelectorAll("nav button")[currentTab];
-  showTab(TAB_NAMES[currentTab], btn, dir);
+  showTab(TAB_NAMES[currentTab], document.querySelectorAll("nav button")[currentTab], dir);
 }, { passive: true });
 
+// ---- Tabs ----
 function showTab(name, btn, direction) {
   currentTab = TAB_NAMES.indexOf(name);
-  document.querySelectorAll(".page").forEach(p => { p.classList.remove("active","slide-in-left","slide-in-right"); });
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active","slide-in-left","slide-in-right"));
   document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
   const page = document.getElementById("page-" + name);
   page.classList.add("active");
   if (direction === "left") page.classList.add("slide-in-left");
   else if (direction === "right") page.classList.add("slide-in-right");
   btn.classList.add("active");
-  if (name === "recent") renderRecent();
+  if (name === "recent") { logPage = 0; renderRecent(); }
   if (name === "trends") renderTrends();
 }
 
@@ -348,6 +380,8 @@ function fmtFull(ts) {
   if (d.toDateString() === yest.toDateString()) return "yesterday " + time;
   return d.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" }) + " " + time;
 }
+function nowLocal() { const d = new Date(); d.setSeconds(0,0); return d.toISOString().slice(0,16); }
+function tsFromInput(id) { const v = document.getElementById(id).value; return v ? new Date(v).getTime() : Date.now(); }
 function entryLabel(e) {
   if (e.type === "feed") return e.ml + "ml (" + e.ebm + "ml EBM, " + e.formula + "ml formula)";
   if (e.type === "pump") return e.ml + "ml pumped";
@@ -368,7 +402,7 @@ function renderHomeShell() {
       <button class="btn" style="background:#3b82f6;color:#fff;flex-shrink:0" onclick="openModal('feed')">Log</button>
     </div>
     <div class="card" style="display:flex;align-items:center;justify-content:space-between">
-      <div><div style="font-size:17px;font-weight:600;margin-bottom:3px">👶 Nappy</div><div id="last-nappy" style="font-size:14px;color:#94a3b8">No entries yet</div></div>
+      <div><div style="font-size:17px;font-weight:600;margin-bottom:3px">🩲 Nappy</div><div id="last-nappy" style="font-size:14px;color:#94a3b8">No entries yet</div></div>
       <button class="btn" style="background:#22c55e;color:#fff;flex-shrink:0" onclick="openModal('nappy')">Log</button>
     </div>
     <div class="card" style="display:flex;align-items:center;justify-content:space-between">
@@ -382,14 +416,12 @@ function renderHome() {
     const el = document.getElementById("last-" + type);
     if (!el) return;
     const e = entries.find(x => x.type === type);
-    const typeNames = { feed: "feed", nappy: "nappy", pump: "pump" };
     if (e) {
-      el.innerHTML = "<span style='font-size:14px;color:#818cf8;font-weight:600'>Last " + typeNames[type] + " " + fmtFull(e.ts) + "</span>";
+      el.innerHTML = "<span style='font-size:14px;color:#818cf8;font-weight:600'>Last " + TYPE_NAMES[type] + " " + fmtFull(e.ts) + "</span>";
     } else {
       el.textContent = "No entries yet";
     }
   });
-  // Today summary
   const todayStart = new Date(); todayStart.setHours(0,0,0,0);
   const today = entries.filter(e => e.ts >= todayStart.getTime());
   const feedMl = today.filter(e => e.type==="feed").reduce((s,e) => s+(e.ml||0), 0);
@@ -399,7 +431,7 @@ function renderHome() {
   const el = document.getElementById("today-summary");
   if (el && today.length > 0) {
     el.innerHTML = `
-      <div style="background:linear-gradient(135deg,#1a1a3e,#1e2a3a);border:1px solid #3b4a6b;border-radius:14px;padding:16px;margin-bottom:4px">
+      <div style="background:linear-gradient(135deg,#1a1a3e,#1e2a3a);border:1px solid #3b4a6b;border-radius:14px;padding:16px">
         <div style="font-size:12px;color:#818cf8;margin-bottom:12px;font-weight:700;letter-spacing:0.08em">TODAY</div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">
           <div><div style="font-size:22px;font-weight:700;color:#60a5fa">${feedCount}</div><div style="font-size:11px;color:#64748b;margin-top:1px">feeds</div><div style="font-size:13px;color:#94a3b8;margin-top:2px">${feedMl}ml</div></div>
@@ -413,25 +445,15 @@ function renderHome() {
 }
 
 // ---- Modals ----
-function nowLocal() {
-  const d = new Date(); d.setSeconds(0,0);
-  return d.toISOString().slice(0,16);
-}
-function tsFromInput(inputId, fallbackTs) {
-  const v = document.getElementById(inputId).value;
-  return v ? new Date(v).getTime() : (fallbackTs || Date.now());
-}
-
 function openModal(type, idx) {
   editingIdx = idx !== undefined ? idx : null;
   const existing = editingIdx !== null ? entries[editingIdx] : null;
   const tsVal = existing ? new Date(existing.ts).toISOString().slice(0,16) : nowLocal();
-
   if (type === "nappy") {
     selectedNappy = null;
     document.querySelectorAll(".nappy-opt").forEach(b => b.classList.remove("selected"));
     document.getElementById("nappy-save-btn").disabled = true;
-    document.getElementById("nappy-modal-title").textContent = editingIdx !== null ? "👶 Edit Nappy" : "👶 Nappy";
+    document.getElementById("nappy-modal-title").textContent = editingIdx !== null ? "🩲 Edit Nappy" : "🩲 Nappy";
     document.getElementById("nappy-ts").value = tsVal;
     if (existing) selectNappy(existing.nappyType);
   }
@@ -450,7 +472,26 @@ function openModal(type, idx) {
   document.getElementById("modal-" + type).style.display = "flex";
 }
 function closeModal(type) { document.getElementById("modal-" + type).style.display = "none"; editingIdx = null; }
-function confirmReset() { document.getElementById("modal-reset").style.display = "flex"; }
+
+function openSettings() {
+  document.getElementById("settings-name").value = WHO;
+  document.getElementById("modal-settings").style.display = "flex";
+}
+function saveName() {
+  const n = document.getElementById("settings-name").value.trim();
+  if (!n) return;
+  WHO = n;
+  localStorage.setItem("ll_who", WHO);
+  closeModal("settings");
+  showToast("✓ Name updated", "success");
+}
+
+function confirmReset() {
+  document.getElementById("reset-count").textContent = entries.length;
+  document.getElementById("reset-confirm-input").value = "";
+  document.getElementById("reset-btn").disabled = true;
+  document.getElementById("modal-reset").style.display = "flex";
+}
 
 // ---- Feed ----
 function updateFeedSliders() {
@@ -503,41 +544,65 @@ async function savePump() {
 async function doReset() {
   entries = [];
   closeModal("reset");
-  renderHome();
-  renderRecent();
-  await saveData();
+  document.getElementById("reset-confirm-input").value = "";
+  renderHome(); renderRecent(); await saveData();
 }
 
-// ---- Recent ----
-function renderRecent() {
-  const list = document.getElementById("recent-list");
-  if (!list) return;
+// ---- Log filters ----
+function setLogFilter(filter, btn) {
+  logFilter = filter;
+  logPage = 0;
+  document.querySelectorAll("#date-filters .preset-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  renderRecent();
+}
+function setTypeFilter(type, btn) {
+  logTypeFilter = type;
+  logPage = 0;
+  document.querySelectorAll("#type-filters .preset-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  renderRecent();
+}
 
-  let filtered;
+function getFilteredEntries() {
+  let filtered = entries;
   if (logFilter === "today") {
     const start = new Date(); start.setHours(0,0,0,0);
-    filtered = entries.filter(e => e.ts >= start.getTime());
-  } else if (logFilter === 0) {
-    filtered = entries;
-  } else {
-    const cutoff = Date.now() - logFilter * 86400000;
-    filtered = entries.filter(e => e.ts >= cutoff);
+    filtered = filtered.filter(e => e.ts >= start.getTime());
+  } else if (logFilter !== 0) {
+    filtered = filtered.filter(e => e.ts >= Date.now() - logFilter * 86400000);
+  }
+  if (logTypeFilter !== "all") filtered = filtered.filter(e => e.type === logTypeFilter);
+  return filtered;
+}
+
+// ---- Recent / Log ----
+function renderRecent() {
+  const list = document.getElementById("recent-list");
+  const pagination = document.getElementById("pagination-controls");
+  if (!list) return;
+
+  const filtered = getFilteredEntries();
+  if (!filtered.length) {
+    list.innerHTML = "<p style='color:#475569'>No entries for this period.</p>";
+    pagination.innerHTML = "";
+    return;
   }
 
-  if (!filtered.length) { list.innerHTML = "<p style='color:#475569'>No entries for this period.</p>"; return; }
-  list.innerHTML = filtered.map((e, i) => {
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  if (logPage >= totalPages) logPage = totalPages - 1;
+  const pageEntries = filtered.slice(logPage * PAGE_SIZE, (logPage + 1) * PAGE_SIZE);
+
+  list.innerHTML = pageEntries.map(e => {
     const globalIdx = entries.indexOf(e);
-    const bgColor = "#1e1e2e";
-    const borderColor = "#2e2e42";
     let volume = "", ratio = "";
     if (e.type === "feed") { volume = e.ml + "ml"; ratio = e.ebm + "ml EBM · " + e.formula + "ml formula"; }
     else if (e.type === "pump") { volume = e.ml + "ml"; }
     else if (e.type === "nappy") { volume = e.nappyType.charAt(0).toUpperCase() + e.nappyType.slice(1); }
-    const typeLabel = { feed: "🍼 Feed", nappy: "👶 Nappy", pump: "🤱 Pump" }[e.type];
     return `
-    <div style="background:${bgColor};border:1.5px solid ${borderColor};border-radius:14px;padding:14px 16px;margin-bottom:10px">
+    <div class="entry-card">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
-        <span style="font-size:18px;font-weight:700;color:#e2e8f0">${typeLabel}</span>
+        <span style="font-size:18px;font-weight:700;color:#e2e8f0">${TYPE_LABELS[e.type]}</span>
         <span style="font-size:16px;font-weight:700;color:#e2e8f0">${fmtTime(e.ts)}</span>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:flex-end">
@@ -546,69 +611,75 @@ function renderRecent() {
           ${ratio ? `<div style="font-size:13px;color:#64748b">${ratio}</div>` : ""}
           <div style="font-size:12px;color:#475569;margin-top:4px">${fmtDate(e.ts)} · ${timeAgo(e.ts)} · by ${e.who}</div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:4px;margin-left:12px;flex-shrink:0">
+        <div style="display:flex;flex-direction:column;align-items:flex-end;margin-left:12px;flex-shrink:0">
           <button class="remove-btn" style="color:#818cf8;border-color:#818cf8" onclick="editEntry(${globalIdx})">Edit</button>
           <div id="del-${globalIdx}"><button class="remove-btn" onclick="showConfirm(${globalIdx})">Remove</button></div>
         </div>
       </div>
     </div>`;
   }).join("");
+
+  pagination.innerHTML = totalPages > 1 ? `
+    <div class="pagination">
+      <button onclick="changePage(-1)" ${logPage === 0 ? "disabled" : ""}>← Prev</button>
+      <span>Page ${logPage + 1} of ${totalPages} · ${filtered.length} entries</span>
+      <button onclick="changePage(1)" ${logPage >= totalPages - 1 ? "disabled" : ""}>Next →</button>
+    </div>` : `<div style="font-size:12px;color:#475569;padding:8px 0;text-align:center">${filtered.length} entr${filtered.length === 1 ? "y" : "ies"}</div>`;
 }
 
-function editEntry(i) {
-  const e = entries[i];
-  openModal(e.type, i);
-}
+function changePage(dir) { logPage += dir; renderRecent(); window.scrollTo(0,0); }
+
+function editEntry(i) { openModal(entries[i].type, i); }
 
 function showConfirm(i) {
   document.getElementById("del-" + i).innerHTML = `
-    <div style="display:flex;gap:6px;justify-content:flex-end">
+    <div style="display:flex;gap:6px;margin-top:4px">
       <button style="font-size:12px;padding:4px 8px;border-radius:8px;border:1px solid #2e2e42;background:#2e2e42;color:#94a3b8;cursor:pointer" onclick="renderRecent()">Keep</button>
       <button style="font-size:12px;padding:4px 8px;border-radius:8px;border:none;background:#ef4444;color:#fff;cursor:pointer" onclick="deleteEntry(${i})">Delete</button>
     </div>`;
 }
-
-async function deleteEntry(i) {
-  entries.splice(i, 1);
-  renderRecent();
-  renderHome();
-  await saveData();
-}
+async function deleteEntry(i) { entries.splice(i, 1); renderRecent(); renderHome(); await saveData(); }
 
 // ---- Trends ----
 function setPreset(days, btn) {
   trendDays = days;
-  document.querySelectorAll(".preset-btn").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll("#page-trends .preset-btn").forEach(b => b.classList.remove("active"));
   btn.classList.add("active");
   renderTrends();
 }
 
 function periodData() {
-  const useWeeks = trendDays === 0;
-  if (useWeeks) {
+  let days;
+  if (trendDays === 0) {
     if (!entries.length) return [];
     const oldest = Math.min(...entries.map(e => e.ts));
-    const weekStart = d => { const x = new Date(d); x.setHours(0,0,0,0); x.setDate(x.getDate() - x.getDay()); return x.getTime(); };
-    const weeks = [];
-    let w = weekStart(oldest);
-    while (w <= Date.now()) { weeks.push(w); w += 7 * 86400000; }
-    return weeks.map(ws => {
-      const we = ws + 7 * 86400000;
-      const day = entries.filter(e => e.ts >= ws && e.ts < we);
-      const d = new Date(ws);
-      const label = d.toLocaleDateString([], { day: "numeric", month: "short" });
-      return buildPeriod(label, day);
-    });
+    const d = new Date(oldest); d.setHours(0,0,0,0);
+    const total = Math.ceil((Date.now() - d.getTime()) / 86400000);
+    if (total > 14) {
+      // Aggregate to weeks
+      const weeks = [];
+      let w = d.getTime();
+      while (w <= Date.now()) { weeks.push(w); w += 7 * 86400000; }
+      return weeks.map(ws => {
+        const we = ws + 7 * 86400000;
+        const label = new Date(ws).toLocaleDateString([], { day: "numeric", month: "short" });
+        return buildPeriod(label, entries.filter(e => e.ts >= ws && e.ts < we));
+      });
+    }
+    days = Array.from({ length: total }, (_, i) => d.getTime() + i * 86400000);
   } else {
-    return Array.from({ length: trendDays }, (_, i) => {
+    days = Array.from({ length: trendDays }, (_, i) => {
       const d = new Date(); d.setDate(d.getDate() - (trendDays - 1 - i)); d.setHours(0,0,0,0);
-      const start = d.getTime(), end = start + 86400000;
-      const label = trendDays <= 7
-        ? d.toLocaleDateString([], { weekday: "short" })
-        : d.toLocaleDateString([], { day: "numeric", month: "short" });
-      return buildPeriod(label, entries.filter(e => e.ts >= start && e.ts < end));
+      return d.getTime();
     });
   }
+  return days.map(dayStart => {
+    const d = new Date(dayStart);
+    const label = trendDays <= 7
+      ? d.toLocaleDateString([], { weekday: "short" })
+      : d.toLocaleDateString([], { day: "numeric", month: "short" });
+    return buildPeriod(label, entries.filter(e => e.ts >= dayStart && e.ts < dayStart + 86400000));
+  });
 }
 
 function buildPeriod(label, day) {
@@ -630,13 +701,15 @@ const COPTS = {
   plugins: { legend: { labels: { color: "#94a3b8", font: { size: 12 } } } },
   scales: {
     x: { ticks: { color: "#64748b", font: { size: 11 } }, grid: { color: "#1e1e2e" } },
-    y: { ticks: { color: "#64748b", font: { size: 11 } }, grid: { color: "#2e2e42" } }
+    y: { ticks: { color: "#64748b", font: { size: 11 } }, grid: { color: "#2e2e42" }, beginAtZero: true }
   }
 };
 
 function mkChart(id, config) {
-  if (charts[id]) charts[id].destroy();
-  charts[id] = new Chart(document.getElementById(id), config);
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+  const canvas = document.getElementById(id);
+  if (!canvas) return;
+  charts[id] = new Chart(canvas, config);
 }
 
 function renderTrends() {
@@ -654,25 +727,13 @@ function renderTrends() {
     <div class="summary-card"><div class="val">${totalNappies}</div><div class="lbl">Nappies</div></div>
     <div class="summary-card"><div class="val">${avgFeed}ml</div><div class="lbl">Avg feed size</div></div>`;
 
+  const stacked = { ...COPTS, scales: { ...COPTS.scales, x: { ...COPTS.scales.x, stacked: true }, y: { ...COPTS.scales.y, stacked: true } } };
   mkChart("c-feed", { type:"bar", data:{ labels, datasets:[{ label:"Feed ml", data:d.map(x=>x.feedMl), backgroundColor:"#3b82f6", borderRadius:4 }]}, options:COPTS });
-  mkChart("c-ebm", { type:"bar", data:{ labels, datasets:[
-    { label:"EBM", data:d.map(x=>x.ebmMl), backgroundColor:"#818cf8", stack:"a" },
-    { label:"Formula", data:d.map(x=>x.formulaMl), backgroundColor:"#f59e0b", stack:"a", borderRadius:4 }
-  ]}, options:{...COPTS, scales:{...COPTS.scales, x:{...COPTS.scales.x,stacked:true}, y:{...COPTS.scales.y,stacked:true}}} });
+  mkChart("c-ebm",  { type:"bar", data:{ labels, datasets:[{ label:"EBM", data:d.map(x=>x.ebmMl), backgroundColor:"#818cf8", stack:"a" }, { label:"Formula", data:d.map(x=>x.formulaMl), backgroundColor:"#f59e0b", stack:"a", borderRadius:4 }]}, options:stacked });
   mkChart("c-pump", { type:"bar", data:{ labels, datasets:[{ label:"Pumped ml", data:d.map(x=>x.pumpMl), backgroundColor:"#ec4899", borderRadius:4 }]}, options:COPTS });
-  mkChart("c-nappy", { type:"bar", data:{ labels, datasets:[
-    { label:"Wet", data:d.map(x=>x.wet), backgroundColor:"#38bdf8", stack:"a" },
-    { label:"Dirty", data:d.map(x=>x.dirty), backgroundColor:"#a78bfa", stack:"a" },
-    { label:"Both", data:d.map(x=>x.both), backgroundColor:"#34d399", stack:"a", borderRadius:4 }
-  ]}, options:{...COPTS, scales:{...COPTS.scales, x:{...COPTS.scales.x,stacked:true}, y:{...COPTS.scales.y,stacked:true}}} });
-  mkChart("c-freq", { type:"bar", data:{ labels, datasets:[
-    { label:"Feeds", data:d.map(x=>x.feedCount), backgroundColor:"#3b82f6", borderRadius:4, yAxisID:"y" },
-    { type:"line", label:"Avg ml", data:d.map(x=>x.avgFeed), borderColor:"#fbbf24", backgroundColor:"#fbbf24", pointRadius:4, yAxisID:"y2", tension:0.3 }
-  ]}, options:{...COPTS, scales:{
-    x:COPTS.scales.x,
-    y:{...COPTS.scales.y, position:"left"},
-    y2:{ticks:{color:"#64748b",font:{size:11}}, grid:{drawOnChartArea:false}, position:"right"}
-  }}});
+  mkChart("c-nappy",{ type:"bar", data:{ labels, datasets:[{ label:"Wet", data:d.map(x=>x.wet), backgroundColor:"#38bdf8", stack:"a" }, { label:"Dirty", data:d.map(x=>x.dirty), backgroundColor:"#a78bfa", stack:"a" }, { label:"Both", data:d.map(x=>x.both), backgroundColor:"#34d399", stack:"a", borderRadius:4 }]}, options:stacked });
+  mkChart("c-freq", { type:"bar", data:{ labels, datasets:[{ label:"Feeds", data:d.map(x=>x.feedCount), backgroundColor:"#3b82f6", borderRadius:4, yAxisID:"y" }, { type:"line", label:"Avg ml", data:d.map(x=>x.avgFeed), borderColor:"#fbbf24", backgroundColor:"#fbbf24", pointRadius:4, yAxisID:"y2", tension:0.3 }]},
+    options:{ ...COPTS, scales:{ x:COPTS.scales.x, y:{ ...COPTS.scales.y, position:"left" }, y2:{ ticks:{ color:"#64748b", font:{ size:11 } }, grid:{ drawOnChartArea:false }, position:"right", beginAtZero:true } } } });
 }
 </script>
 </body>
