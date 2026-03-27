@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Bowen's Business">
-<title>Bowen's Business 🌙</title>
+<title>Bowen's Business</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -17,7 +17,6 @@
   .btn-primary { background: #818cf8; color: #fff; width: 100%; font-size: 16px; padding: 14px; }
   .btn-primary:disabled { background: #2e2e42; color: #475569; cursor: not-allowed; }
   .btn-secondary { background: #2e2e42; color: #94a3b8; width: 100%; font-size: 16px; padding: 14px; }
-  .btn-danger { background: #ef4444; color: #fff; }
   input[type=text], input[type=number] { width: 100%; padding: 13px 14px; border: 1.5px solid #2e2e42; border-radius: 12px; font-size: 17px; background: #16162a; color: #e2e8f0; outline: none; }
   input[type=datetime-local] { width: 100%; padding: 13px 14px; border: 1.5px solid #2e2e42; border-radius: 12px; font-size: 15px; background: #16162a; color: #e2e8f0; outline: none; color-scheme: dark; }
   input:focus { border-color: #818cf8; }
@@ -49,8 +48,8 @@
   .nappy-opt.selected { border-color: #818cf8; background: #2d2b55; font-weight: 600; }
   .remove-btn { font-size: 12px; padding: 4px 8px; border-radius: 8px; border: 1px solid #2e2e42; background: none; color: #475569; cursor: pointer; margin-top: 4px; display: block; white-space: nowrap; }
   .filter-row { display: flex; gap: 8px; margin-bottom: 10px; }
-  .preset-btn { flex:1; padding:8px 0; background:#1e1e2e; border:1.5px solid #2e2e42; border-radius:10px; color:#64748b; font-size:14px; font-weight:600; cursor:pointer; }
-  .preset-btn.active { background:#2d2b55; border-color:#818cf8; color:#818cf8; }
+  .preset-btn { flex: 1; padding: 8px 0; background: #1e1e2e; border: 1.5px solid #2e2e42; border-radius: 10px; color: #64748b; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .preset-btn.active { background: #2d2b55; border-color: #818cf8; color: #818cf8; }
   .chart-wrap { margin-bottom: 28px; }
   .chart-wrap h3 { font-size: 15px; color: #94a3b8; margin-bottom: 12px; }
   .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
@@ -64,9 +63,11 @@
   .pagination button { background: #2e2e42; border: none; border-radius: 10px; color: #e2e8f0; padding: 8px 16px; font-size: 14px; font-weight: 600; cursor: pointer; }
   .pagination button:disabled { opacity: 0.3; cursor: not-allowed; }
   .pagination span { font-size: 13px; color: #64748b; }
+  .lbl-input { display: block; font-size: 14px; color: #94a3b8; font-weight: 500; margin-bottom: 6px; }
 </style>
 </head>
 <body>
+
 
   <script>
   const WORKER_URL   = "https://crimson-field-cfbb.backupjwb.workers.dev/";
@@ -94,16 +95,16 @@
   <div class="page" id="page-recent">
     <h2 style="font-size:20px;color:#e2e8f0;margin-bottom:14px">Log</h2>
     <div class="filter-row" id="date-filters">
-      <button class="preset-btn active" data-filter="today" onclick="setLogFilter('today',this)">Today</button>
-      <button class="preset-btn" data-filter="7" onclick="setLogFilter(7,this)">7d</button>
-      <button class="preset-btn" data-filter="30" onclick="setLogFilter(30,this)">30d</button>
-      <button class="preset-btn" data-filter="0" onclick="setLogFilter(0,this)">All</button>
+      <button class="preset-btn active" onclick="setLogFilter('today',this)">Today</button>
+      <button class="preset-btn" onclick="setLogFilter(7,this)">7d</button>
+      <button class="preset-btn" onclick="setLogFilter(30,this)">30d</button>
+      <button class="preset-btn" onclick="setLogFilter(0,this)">All</button>
     </div>
     <div class="filter-row" id="type-filters">
-      <button class="preset-btn active" data-type="all" onclick="setTypeFilter('all',this)">All</button>
-      <button class="preset-btn" data-type="feed" onclick="setTypeFilter('feed',this)">🍼</button>
-      <button class="preset-btn" data-type="nappy" onclick="setTypeFilter('nappy',this)">🩲</button>
-      <button class="preset-btn" data-type="pump" onclick="setTypeFilter('pump',this)">🤱</button>
+      <button class="preset-btn active" onclick="setTypeFilter('all',this)">All</button>
+      <button class="preset-btn" onclick="setTypeFilter('feed',this)">🍼</button>
+      <button class="preset-btn" onclick="setTypeFilter('nappy',this)">🩲</button>
+      <button class="preset-btn" onclick="setTypeFilter('pump',this)">🤱</button>
     </div>
     <div id="recent-list"></div>
     <div id="pagination-controls"></div>
@@ -111,7 +112,7 @@
 
   <div class="page" id="page-trends">
     <h2 style="font-size:20px;color:#e2e8f0;margin-bottom:16px">Trends</h2>
-    <div class="filter-row">
+    <div class="filter-row" id="trend-filters">
       <button class="preset-btn active" onclick="setPreset(7,this)">7d</button>
       <button class="preset-btn" onclick="setPreset(14,this)">14d</button>
       <button class="preset-btn" onclick="setPreset(30,this)">30d</button>
@@ -120,6 +121,7 @@
     <div id="trends-summary" class="summary-grid" style="margin-top:16px"></div>
     <div class="chart-wrap"><h3>🍼 Total feed per day (ml)</h3><canvas id="c-feed"></canvas></div>
     <div class="chart-wrap"><h3>🍼 EBM vs formula (ml)</h3><canvas id="c-ebm"></canvas></div>
+    <div class="chart-wrap"><h3>🍼 Avg gap between feeds (mins)</h3><canvas id="c-gap"></canvas></div>
     <div class="chart-wrap"><h3>🤱 Pumped (ml)</h3><canvas id="c-pump"></canvas></div>
     <div class="chart-wrap"><h3>🩲 Nappies by type</h3><canvas id="c-nappy"></canvas></div>
     <div class="chart-wrap"><h3>🍼 Feed frequency + avg size</h3><canvas id="c-freq"></canvas></div>
@@ -137,17 +139,17 @@
 <div class="modal-backdrop" id="modal-feed" style="display:none">
   <div class="modal">
     <h2 id="feed-modal-title">🍼 Feed</h2>
-    <div class="slider-row"><label>Total amount</label><span class="slider-val" id="feed-total-val">80ml</span></div>
+    <div class="slider-row"><label class="lbl-input">Total amount</label><span class="slider-val" id="feed-total-val">80ml</span></div>
     <input type="range" min="0" max="300" step="5" value="80" id="feed-total" oninput="updateFeedSliders()">
     <div class="slider-hint"><span>0ml</span><span>300ml</span></div>
-    <div class="slider-row"><label>EBM portion</label><span class="slider-val" id="feed-ebm-val">40ml</span></div>
+    <div class="slider-row"><label class="lbl-input">EBM portion</label><span class="slider-val" id="feed-ebm-val">40ml</span></div>
     <input type="range" min="0" max="80" step="5" value="40" id="feed-ebm" oninput="updateFeedSliders()">
     <div class="slider-hint"><span>0ml</span><span id="feed-ebm-max-label">80ml</span></div>
     <div style="background:#16162a;border-radius:10px;padding:12px 14px;margin-bottom:20px;display:flex;justify-content:space-between">
       <span style="color:#94a3b8;font-size:14px">Formula</span>
       <span style="color:#818cf8;font-weight:700;font-size:15px" id="feed-formula-val">40ml</span>
     </div>
-    <label style="margin-bottom:6px;display:block;font-size:14px;color:#94a3b8">Date &amp; time</label>
+    <label class="lbl-input">Date &amp; time</label>
     <input type="datetime-local" id="feed-ts" style="margin-bottom:16px">
     <div class="row">
       <button class="btn btn-secondary" onclick="closeModal('feed')">Cancel</button>
@@ -163,7 +165,7 @@
     <button class="nappy-opt" id="nopt-wet" onclick="selectNappy('wet')">Wet</button>
     <button class="nappy-opt" id="nopt-dirty" onclick="selectNappy('dirty')">Dirty</button>
     <button class="nappy-opt" id="nopt-both" onclick="selectNappy('both')">Both</button>
-    <label style="margin-top:4px;margin-bottom:6px;display:block;font-size:14px;color:#94a3b8">Date &amp; time</label>
+    <label class="lbl-input" style="margin-top:4px">Date &amp; time</label>
     <input type="datetime-local" id="nappy-ts" style="margin-bottom:16px">
     <div class="row">
       <button class="btn btn-secondary" onclick="closeModal('nappy')">Cancel</button>
@@ -176,10 +178,10 @@
 <div class="modal-backdrop" id="modal-pump" style="display:none">
   <div class="modal">
     <h2 id="pump-modal-title">🤱 Pump</h2>
-    <div class="slider-row"><label>Amount pumped</label><span class="slider-val" id="pump-val">60ml</span></div>
+    <div class="slider-row"><label class="lbl-input">Amount pumped</label><span class="slider-val" id="pump-val">60ml</span></div>
     <input type="range" min="0" max="300" step="5" value="60" id="pump-slider" oninput="document.getElementById('pump-val').textContent=this.value+'ml'">
     <div class="slider-hint"><span>0ml</span><span>300ml</span></div>
-    <label style="margin-bottom:6px;display:block;font-size:14px;color:#94a3b8">Date &amp; time</label>
+    <label class="lbl-input">Date &amp; time</label>
     <input type="datetime-local" id="pump-ts" style="margin-bottom:16px">
     <div class="row">
       <button class="btn btn-secondary" onclick="closeModal('pump')">Cancel</button>
@@ -192,10 +194,8 @@
 <div class="modal-backdrop modal-center" id="modal-settings" style="display:none">
   <div class="modal">
     <h2>⚙️ Settings</h2>
-    <div style="margin-bottom:16px">
-      <label style="display:block;font-size:14px;color:#94a3b8;margin-bottom:6px">Your name</label>
-      <input type="text" id="settings-name" placeholder="Enter name">
-    </div>
+    <label class="lbl-input">Your name</label>
+    <input type="text" id="settings-name" placeholder="Enter name" style="margin-bottom:12px">
     <button class="btn btn-primary" style="margin-bottom:10px" onclick="saveName()">Save name</button>
     <button class="btn btn-secondary" style="margin-bottom:10px" onclick="closeModal('settings');refreshData()">↻ Refresh data</button>
     <button class="btn" style="width:100%;padding:14px;background:#2a1a1a;color:#ef4444;border:1px solid #3a2020;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer" onclick="closeModal('settings');confirmReset()">Reset all data</button>
@@ -206,36 +206,34 @@
 <div class="modal-backdrop modal-center" id="modal-reset" style="display:none">
   <div class="modal">
     <h2>Reset all data?</h2>
-    <p style="color:#94a3b8;font-size:14px;margin-bottom:8px">This will permanently delete all <span id="reset-count" style="color:#ef4444;font-weight:700"></span> entries for both users.</p>
-    <p style="color:#64748b;font-size:13px;margin-bottom:24px">Type <strong style="color:#e2e8f0">reset</strong> to confirm.</p>
+    <p style="color:#94a3b8;font-size:14px;margin-bottom:8px">This will permanently delete all <span id="reset-count" style="color:#ef4444;font-weight:700"></span> entries.</p>
+    <p style="color:#64748b;font-size:13px;margin-bottom:16px">Type <strong style="color:#e2e8f0">reset</strong> to confirm.</p>
     <input type="text" id="reset-confirm-input" placeholder="type reset" style="margin-bottom:12px">
     <div class="row">
       <button class="btn btn-secondary" onclick="closeModal('reset');document.getElementById('reset-confirm-input').value=''">Cancel</button>
-      <button class="btn btn-danger" id="reset-btn" style="flex:1;border-radius:12px;font-size:16px;font-weight:600" disabled onclick="doReset()">Reset</button>
+      <button class="btn" id="reset-btn" style="flex:1;padding:14px;background:#ef4444;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer" disabled onclick="doReset()">Reset</button>
     </div>
   </div>
 </div>
 
 <script>
-// ---- Constants ----
-const ICONS = { feed: "🍼", nappy: "🩲", pump: "🤱" };
-const TYPE_LABELS = { feed: "🍼 Feed", nappy: "🩲 Nappy", pump: "🤱 Pump" };
-const TYPE_NAMES = { feed: "feed", nappy: "nappy", pump: "pump" };
-const TAB_NAMES = ["home", "recent", "trends"];
+var WHO = "";
+var entries = [];
+var selectedNappy = null;
+var trendDays = 7;
+var logFilter = "today";
+var logTypeFilter = "all";
+var logPage = 0;
+var currentTab = 0;
+var editingIdx = null;
+var swipeStartX = null;
+var charts = {};
+var toastTimer = null;
 
-// ---- State ----
-let WHO = "";
-let entries = [];
-let selectedNappy = null;
-let trendDays = 7;
-let logFilter = "today";
-let logTypeFilter = "all";
-let logPage = 0;
-let currentTab = 0;
-let editingIdx = null;
-let swipeStartX = null;
-let charts = {};
-let toastTimer = null;
+var ICONS = { feed: "🍼", nappy: "🩲", pump: "🤱" };
+var TYPE_LABELS = { feed: "🍼 Feed", nappy: "🩲 Nappy", pump: "🤱 Pump" };
+var TYPE_NAMES = { feed: "feed", nappy: "nappy", pump: "pump" };
+var TAB_NAMES = ["home", "recent", "trends"];
 
 // ---- Init ----
 document.getElementById("nameInput").addEventListener("input", function() {
@@ -247,101 +245,102 @@ document.getElementById("nameInput").addEventListener("keydown", function(e) {
 document.getElementById("reset-confirm-input").addEventListener("input", function() {
   document.getElementById("reset-btn").disabled = this.value.trim().toLowerCase() !== "reset";
 });
-
-window.addEventListener("load", () => {
-  const saved = localStorage.getItem("ll_who");
+document.addEventListener("visibilitychange", function() {
+  if (!document.hidden && WHO) refreshData(true);
+});
+window.addEventListener("load", function() {
+  var saved = localStorage.getItem("ll_who");
   if (saved) { WHO = saved; launchApp(); }
 });
 
-document.addEventListener("visibilitychange", () => {
-  if (!document.hidden && WHO) refreshData(true);
-});
-
 // ---- Auth ----
-async function startApp() {
+function startApp() {
   WHO = document.getElementById("nameInput").value.trim();
   if (!WHO) return;
   localStorage.setItem("ll_who", WHO);
   launchApp();
 }
 
-async function launchApp() {
+function launchApp() {
   document.getElementById("overlay").style.display = "none";
   document.getElementById("app").style.display = "block";
   renderHomeShell();
-  await loadData();
-  renderHome();
+  loadData().then(function() { renderHome(); });
 }
 
 // ---- Toast ----
 function showToast(msg, type) {
-  const t = document.getElementById("toast");
+  var t = document.getElementById("toast");
   t.textContent = msg;
   t.className = "toast " + type;
   clearTimeout(toastTimer);
-  if (type !== "saving") toastTimer = setTimeout(() => t.className = "toast", 2500);
+  if (type !== "saving") toastTimer = setTimeout(function() { t.className = "toast"; }, 2500);
 }
 function hideToast() { document.getElementById("toast").className = "toast"; }
 
 // ---- Data ----
-async function loadData() {
+function loadData() {
   if (!WORKER_URL || WORKER_URL === "PASTE_YOUR_WORKER_URL_HERE") {
     entries = JSON.parse(localStorage.getItem("ll_entries") || "[]");
-    return;
+    return Promise.resolve();
   }
-  try {
-    const r = await fetch(WORKER_URL, { headers: { "X-App-Secret": APP_SECRET } });
-    if (!r.ok) throw new Error();
-    const d = await r.json();
-    entries = (d.entries || []).slice(0, MAX_ENTRIES);
-    localStorage.setItem("ll_entries", JSON.stringify(entries));
-  } catch {
-    showToast("⚠️ Couldn't load from server - showing local data", "error");
-    entries = JSON.parse(localStorage.getItem("ll_entries") || "[]");
-  }
+  return fetch(WORKER_URL, { headers: { "X-App-Secret": APP_SECRET } })
+    .then(function(r) {
+      if (!r.ok) throw new Error();
+      return r.json();
+    })
+    .then(function(d) {
+      entries = (d.entries || []).slice(0, MAX_ENTRIES);
+      localStorage.setItem("ll_entries", JSON.stringify(entries));
+    })
+    .catch(function() {
+      showToast("Could not load from server - showing local data", "error");
+      entries = JSON.parse(localStorage.getItem("ll_entries") || "[]");
+    });
 }
 
-async function saveData() {
-  showToast("Saving…", "saving");
-  // Trim to cap before saving
+function saveData() {
+  showToast("Saving...", "saving");
   if (entries.length > MAX_ENTRIES) entries = entries.slice(0, MAX_ENTRIES);
   localStorage.setItem("ll_entries", JSON.stringify(entries));
-  if (!WORKER_URL || WORKER_URL === "PASTE_YOUR_WORKER_URL_HERE") { hideToast(); return; }
-  try {
-    const r = await fetch(WORKER_URL, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json", "X-App-Secret": APP_SECRET },
-      body: JSON.stringify({ entries })
-    });
+  if (!WORKER_URL || WORKER_URL === "PASTE_YOUR_WORKER_URL_HERE") { hideToast(); return Promise.resolve(); }
+  return fetch(WORKER_URL, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", "X-App-Secret": APP_SECRET },
+    body: JSON.stringify({ entries: entries })
+  })
+  .then(function(r) {
     if (!r.ok) throw new Error();
-    showToast("✓ Saved", "success");
-  } catch {
-    showToast("⚠️ Save failed - entry kept locally", "error");
-  }
+    showToast("Saved", "success");
+  })
+  .catch(function() {
+    showToast("Save failed - kept locally", "error");
+  });
 }
 
-async function refreshData(silent) {
-  if (!silent) showToast("Refreshing…", "saving");
-  await loadData();
-  renderHome();
-  if (currentTab === 1) renderRecent();
-  if (currentTab === 2) renderTrends();
-  if (!silent) showToast("✓ Updated", "success");
+function refreshData(silent) {
+  if (!silent) showToast("Refreshing...", "saving");
+  return loadData().then(function() {
+    renderHome();
+    if (currentTab === 1) renderRecent();
+    if (currentTab === 2) renderTrends();
+    if (!silent) showToast("Updated", "success");
+  });
 }
 
 // ---- Swipe ----
-document.addEventListener("touchstart", e => {
+document.addEventListener("touchstart", function(e) {
   if (e.target.closest(".modal-backdrop")) return;
   swipeStartX = e.touches[0].clientX;
 }, { passive: true });
 
-document.addEventListener("touchend", e => {
+document.addEventListener("touchend", function(e) {
   if (swipeStartX === null || e.target.closest(".modal-backdrop")) return;
-  const dx = e.changedTouches[0].clientX - swipeStartX;
+  var dx = e.changedTouches[0].clientX - swipeStartX;
   swipeStartX = null;
   if (Math.abs(dx) < 50) return;
-  const dir = dx < 0 ? "left" : "right";
-  const newTab = dx < 0 ? Math.min(currentTab + 1, TAB_NAMES.length - 1) : Math.max(currentTab - 1, 0);
+  var dir = dx < 0 ? "left" : "right";
+  var newTab = dx < 0 ? Math.min(currentTab + 1, TAB_NAMES.length - 1) : Math.max(currentTab - 1, 0);
   if (newTab === currentTab) return;
   currentTab = newTab;
   showTab(TAB_NAMES[currentTab], document.querySelectorAll("nav button")[currentTab], dir);
@@ -350,9 +349,9 @@ document.addEventListener("touchend", e => {
 // ---- Tabs ----
 function showTab(name, btn, direction) {
   currentTab = TAB_NAMES.indexOf(name);
-  document.querySelectorAll(".page").forEach(p => p.classList.remove("active","slide-in-left","slide-in-right"));
-  document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
-  const page = document.getElementById("page-" + name);
+  document.querySelectorAll(".page").forEach(function(p) { p.classList.remove("active","slide-in-left","slide-in-right"); });
+  document.querySelectorAll("nav button").forEach(function(b) { b.classList.remove("active"); });
+  var page = document.getElementById("page-" + name);
   page.classList.add("active");
   if (direction === "left") page.classList.add("slide-in-left");
   else if (direction === "right") page.classList.add("slide-in-right");
@@ -363,25 +362,36 @@ function showTab(name, btn, direction) {
 
 // ---- Helpers ----
 function timeAgo(ts) {
-  const m = Math.floor((Date.now() - ts) / 60000);
+  var m = Math.floor((Date.now() - ts) / 60000);
   if (m < 1) return "just now";
   if (m < 60) return m + "m ago";
-  const h = Math.floor(m / 60);
+  var h = Math.floor(m / 60);
   if (h < 24) return h + "h " + (m % 60) + "m ago";
   return Math.floor(h / 24) + "d ago";
 }
 function fmtTime(ts) { return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); }
 function fmtDate(ts) { return new Date(ts).toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" }); }
 function fmtFull(ts) {
-  const now = new Date(), d = new Date(ts);
-  const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  var now = new Date(), d = new Date(ts);
+  var time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   if (d.toDateString() === now.toDateString()) return "today " + time;
-  const yest = new Date(); yest.setDate(yest.getDate() - 1);
+  var yest = new Date(); yest.setDate(yest.getDate() - 1);
   if (d.toDateString() === yest.toDateString()) return "yesterday " + time;
   return d.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" }) + " " + time;
 }
-function nowLocal() { const d = new Date(); d.setSeconds(0,0); return d.toISOString().slice(0,16); }
-function tsFromInput(id) { const v = document.getElementById(id).value; return v ? new Date(v).getTime() : Date.now(); }
+function fmtGap(mins) {
+  if (mins < 60) return mins + "m";
+  var h = Math.floor(mins / 60), m = mins % 60;
+  return m > 0 ? h + "h " + m + "m" : h + "h";
+}
+function nowLocal() {
+  var d = new Date(); d.setSeconds(0, 0);
+  return d.toISOString().slice(0, 16);
+}
+function tsFromInput(id) {
+  var v = document.getElementById(id).value;
+  return v ? new Date(v).getTime() : Date.now();
+}
 function entryLabel(e) {
   if (e.type === "feed") return e.ml + "ml (" + e.ebm + "ml EBM, " + e.formula + "ml formula)";
   if (e.type === "pump") return e.ml + "ml pumped";
@@ -391,54 +401,54 @@ function entryLabel(e) {
 
 // ---- Home ----
 function renderHomeShell() {
-  document.getElementById("page-home").innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-      <h2 style="font-size:22px;color:#e2e8f0">Bowen's Business 🌙</h2>
-      <button onclick="refreshData()" style="background:none;border:none;color:#475569;font-size:22px;cursor:pointer;padding:4px">↻</button>
-    </div>
-    <div id="today-summary" style="margin-bottom:16px"></div>
-    <div class="card" style="display:flex;align-items:center;justify-content:space-between">
-      <div><div style="font-size:17px;font-weight:600;margin-bottom:3px">🍼 Feed</div><div id="last-feed" style="font-size:14px;color:#94a3b8">No entries yet</div></div>
-      <button class="btn" style="background:#3b82f6;color:#fff;flex-shrink:0" onclick="openModal('feed')">Log</button>
-    </div>
-    <div class="card" style="display:flex;align-items:center;justify-content:space-between">
-      <div><div style="font-size:17px;font-weight:600;margin-bottom:3px">🩲 Nappy</div><div id="last-nappy" style="font-size:14px;color:#94a3b8">No entries yet</div></div>
-      <button class="btn" style="background:#22c55e;color:#fff;flex-shrink:0" onclick="openModal('nappy')">Log</button>
-    </div>
-    <div class="card" style="display:flex;align-items:center;justify-content:space-between">
-      <div><div style="font-size:17px;font-weight:600;margin-bottom:3px">🤱 Pump</div><div id="last-pump" style="font-size:14px;color:#94a3b8">No entries yet</div></div>
-      <button class="btn" style="background:#ec4899;color:#fff;flex-shrink:0" onclick="openModal('pump')">Log</button>
-    </div>`;
+  document.getElementById("page-home").innerHTML =
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">' +
+      '<h2 style="font-size:22px;color:#e2e8f0">Bowen\'s Business 🌙</h2>' +
+      '<button onclick="refreshData()" style="background:none;border:none;color:#475569;font-size:22px;cursor:pointer;padding:4px">↻</button>' +
+    '</div>' +
+    '<div id="today-summary" style="margin-bottom:16px"></div>' +
+    '<div class="card" style="display:flex;align-items:center;justify-content:space-between">' +
+      '<div><div style="font-size:17px;font-weight:600;margin-bottom:3px">🍼 Feed</div><div id="last-feed" style="font-size:14px;color:#94a3b8">No entries yet</div></div>' +
+      '<button class="btn" style="background:#3b82f6;color:#fff;flex-shrink:0" onclick="openModal(\'feed\')">Log</button>' +
+    '</div>' +
+    '<div class="card" style="display:flex;align-items:center;justify-content:space-between">' +
+      '<div><div style="font-size:17px;font-weight:600;margin-bottom:3px">🩲 Nappy</div><div id="last-nappy" style="font-size:14px;color:#94a3b8">No entries yet</div></div>' +
+      '<button class="btn" style="background:#22c55e;color:#fff;flex-shrink:0" onclick="openModal(\'nappy\')">Log</button>' +
+    '</div>' +
+    '<div class="card" style="display:flex;align-items:center;justify-content:space-between">' +
+      '<div><div style="font-size:17px;font-weight:600;margin-bottom:3px">🤱 Pump</div><div id="last-pump" style="font-size:14px;color:#94a3b8">No entries yet</div></div>' +
+      '<button class="btn" style="background:#ec4899;color:#fff;flex-shrink:0" onclick="openModal(\'pump\')">Log</button>' +
+    '</div>';
 }
 
 function renderHome() {
-  ["feed","nappy","pump"].forEach(type => {
-    const el = document.getElementById("last-" + type);
+  ["feed","nappy","pump"].forEach(function(type) {
+    var el = document.getElementById("last-" + type);
     if (!el) return;
-    const e = entries.find(x => x.type === type);
+    var e = entries.find(function(x) { return x.type === type; });
     if (e) {
       el.innerHTML = "<span style='font-size:14px;color:#818cf8;font-weight:600'>Last " + TYPE_NAMES[type] + " " + fmtFull(e.ts) + "</span>";
     } else {
       el.textContent = "No entries yet";
     }
   });
-  const todayStart = new Date(); todayStart.setHours(0,0,0,0);
-  const today = entries.filter(e => e.ts >= todayStart.getTime());
-  const feedMl = today.filter(e => e.type==="feed").reduce((s,e) => s+(e.ml||0), 0);
-  const feedCount = today.filter(e => e.type==="feed").length;
-  const nappyCount = today.filter(e => e.type==="nappy").length;
-  const pumpMl = today.filter(e => e.type==="pump").reduce((s,e) => s+(e.ml||0), 0);
-  const el = document.getElementById("today-summary");
+  var todayStart = new Date(); todayStart.setHours(0,0,0,0);
+  var today = entries.filter(function(e) { return e.ts >= todayStart.getTime(); });
+  var feedMl = today.filter(function(e) { return e.type==="feed"; }).reduce(function(s,e) { return s+(e.ml||0); }, 0);
+  var feedCount = today.filter(function(e) { return e.type==="feed"; }).length;
+  var nappyCount = today.filter(function(e) { return e.type==="nappy"; }).length;
+  var pumpMl = today.filter(function(e) { return e.type==="pump"; }).reduce(function(s,e) { return s+(e.ml||0); }, 0);
+  var el = document.getElementById("today-summary");
   if (el && today.length > 0) {
-    el.innerHTML = `
-      <div style="background:linear-gradient(135deg,#1a1a3e,#1e2a3a);border:1px solid #3b4a6b;border-radius:14px;padding:16px">
-        <div style="font-size:12px;color:#818cf8;margin-bottom:12px;font-weight:700;letter-spacing:0.08em">TODAY</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">
-          <div><div style="font-size:22px;font-weight:700;color:#60a5fa">${feedCount}</div><div style="font-size:11px;color:#64748b;margin-top:1px">feeds</div><div style="font-size:13px;color:#94a3b8;margin-top:2px">${feedMl}ml</div></div>
-          <div style="border-left:1px solid #2e3a52;border-right:1px solid #2e3a52"><div style="font-size:22px;font-weight:700;color:#4ade80">${nappyCount}</div><div style="font-size:11px;color:#64748b;margin-top:1px">nappies</div></div>
-          <div><div style="font-size:22px;font-weight:700;color:#f472b6">${pumpMl}ml</div><div style="font-size:11px;color:#64748b;margin-top:1px">pumped</div></div>
-        </div>
-      </div>`;
+    el.innerHTML =
+      '<div style="background:linear-gradient(135deg,#1a1a3e,#1e2a3a);border:1px solid #3b4a6b;border-radius:14px;padding:16px">' +
+        '<div style="font-size:12px;color:#818cf8;margin-bottom:12px;font-weight:700;letter-spacing:0.08em">TODAY</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">' +
+          '<div><div style="font-size:22px;font-weight:700;color:#60a5fa">' + feedCount + '</div><div style="font-size:11px;color:#64748b;margin-top:1px">feeds</div><div style="font-size:13px;color:#94a3b8;margin-top:2px">' + feedMl + 'ml</div></div>' +
+          '<div style="border-left:1px solid #2e3a52;border-right:1px solid #2e3a52"><div style="font-size:22px;font-weight:700;color:#4ade80">' + nappyCount + '</div><div style="font-size:11px;color:#64748b;margin-top:1px">nappies</div></div>' +
+          '<div><div style="font-size:22px;font-weight:700;color:#f472b6">' + pumpMl + 'ml</div><div style="font-size:11px;color:#64748b;margin-top:1px">pumped</div></div>' +
+        '</div>' +
+      '</div>';
   } else if (el) {
     el.innerHTML = "";
   }
@@ -446,12 +456,12 @@ function renderHome() {
 
 // ---- Modals ----
 function openModal(type, idx) {
-  editingIdx = idx !== undefined ? idx : null;
-  const existing = editingIdx !== null ? entries[editingIdx] : null;
-  const tsVal = existing ? new Date(existing.ts).toISOString().slice(0,16) : nowLocal();
+  editingIdx = (idx !== undefined) ? idx : null;
+  var existing = (editingIdx !== null) ? entries[editingIdx] : null;
+  var tsVal = existing ? new Date(existing.ts).toISOString().slice(0,16) : nowLocal();
   if (type === "nappy") {
     selectedNappy = null;
-    document.querySelectorAll(".nappy-opt").forEach(b => b.classList.remove("selected"));
+    document.querySelectorAll(".nappy-opt").forEach(function(b) { b.classList.remove("selected"); });
     document.getElementById("nappy-save-btn").disabled = true;
     document.getElementById("nappy-modal-title").textContent = editingIdx !== null ? "🩲 Edit Nappy" : "🩲 Nappy";
     document.getElementById("nappy-ts").value = tsVal;
@@ -461,13 +471,19 @@ function openModal(type, idx) {
     document.getElementById("feed-modal-title").textContent = editingIdx !== null ? "🍼 Edit Feed" : "🍼 Feed";
     document.getElementById("feed-save-btn").textContent = editingIdx !== null ? "Update" : "Save";
     document.getElementById("feed-ts").value = tsVal;
-    if (existing) { document.getElementById("feed-total").value = existing.ml; document.getElementById("feed-ebm").value = existing.ebm; }
+    if (existing) {
+      document.getElementById("feed-total").value = existing.ml;
+      document.getElementById("feed-ebm").value = existing.ebm;
+    }
     updateFeedSliders();
   }
   if (type === "pump") {
     document.getElementById("pump-modal-title").textContent = editingIdx !== null ? "🤱 Edit Pump" : "🤱 Pump";
     document.getElementById("pump-ts").value = tsVal;
-    if (existing) { document.getElementById("pump-slider").value = existing.ml; document.getElementById("pump-val").textContent = existing.ml + "ml"; }
+    if (existing) {
+      document.getElementById("pump-slider").value = existing.ml;
+      document.getElementById("pump-val").textContent = existing.ml + "ml";
+    }
   }
   document.getElementById("modal-" + type).style.display = "flex";
 }
@@ -478,14 +494,13 @@ function openSettings() {
   document.getElementById("modal-settings").style.display = "flex";
 }
 function saveName() {
-  const n = document.getElementById("settings-name").value.trim();
+  var n = document.getElementById("settings-name").value.trim();
   if (!n) return;
   WHO = n;
   localStorage.setItem("ll_who", WHO);
   closeModal("settings");
-  showToast("✓ Name updated", "success");
+  showToast("Name updated", "success");
 }
-
 function confirmReset() {
   document.getElementById("reset-count").textContent = entries.length;
   document.getElementById("reset-confirm-input").value = "";
@@ -495,208 +510,233 @@ function confirmReset() {
 
 // ---- Feed ----
 function updateFeedSliders() {
-  const total = +document.getElementById("feed-total").value;
-  const ebmSlider = document.getElementById("feed-ebm");
+  var total = +document.getElementById("feed-total").value;
+  var ebmSlider = document.getElementById("feed-ebm");
   ebmSlider.max = total;
   if (+ebmSlider.value > total) ebmSlider.value = total;
-  const ebm = +ebmSlider.value;
+  var ebm = +ebmSlider.value;
   document.getElementById("feed-total-val").textContent = total + "ml";
   document.getElementById("feed-ebm-val").textContent = ebm + "ml";
   document.getElementById("feed-ebm-max-label").textContent = total + "ml";
   document.getElementById("feed-formula-val").textContent = (total - ebm) + "ml";
 }
-async function saveFeed() {
-  const ml = +document.getElementById("feed-total").value;
-  const ebm = +document.getElementById("feed-ebm").value;
-  const ts = tsFromInput("feed-ts");
-  const entry = { type: "feed", ml, ebm, formula: ml - ebm, ts, who: WHO };
+function saveFeed() {
+  var ml = +document.getElementById("feed-total").value;
+  var ebm = +document.getElementById("feed-ebm").value;
+  var ts = tsFromInput("feed-ts");
+  var entry = { type: "feed", ml: ml, ebm: ebm, formula: ml - ebm, ts: ts, who: WHO };
   if (editingIdx !== null) entries[editingIdx] = entry; else entries.unshift(entry);
-  entries.sort((a,b) => b.ts - a.ts);
-  closeModal("feed"); renderHome(); renderRecent(); await saveData();
+  entries.sort(function(a,b) { return b.ts - a.ts; });
+  closeModal("feed"); renderHome(); renderRecent(); saveData();
 }
 
 // ---- Nappy ----
 function selectNappy(type) {
   selectedNappy = type;
-  document.querySelectorAll(".nappy-opt").forEach(b => b.classList.remove("selected"));
+  document.querySelectorAll(".nappy-opt").forEach(function(b) { b.classList.remove("selected"); });
   document.getElementById("nopt-" + type).classList.add("selected");
   document.getElementById("nappy-save-btn").disabled = false;
 }
-async function saveNappy() {
-  const ts = tsFromInput("nappy-ts");
-  const entry = { type: "nappy", nappyType: selectedNappy, ts, who: WHO };
+function saveNappy() {
+  var ts = tsFromInput("nappy-ts");
+  var entry = { type: "nappy", nappyType: selectedNappy, ts: ts, who: WHO };
   if (editingIdx !== null) entries[editingIdx] = entry; else entries.unshift(entry);
-  entries.sort((a,b) => b.ts - a.ts);
-  closeModal("nappy"); renderHome(); renderRecent(); await saveData();
+  entries.sort(function(a,b) { return b.ts - a.ts; });
+  closeModal("nappy"); renderHome(); renderRecent(); saveData();
 }
 
 // ---- Pump ----
-async function savePump() {
-  const ml = +document.getElementById("pump-slider").value;
-  const ts = tsFromInput("pump-ts");
-  const entry = { type: "pump", ml, ts, who: WHO };
+function savePump() {
+  var ml = +document.getElementById("pump-slider").value;
+  var ts = tsFromInput("pump-ts");
+  var entry = { type: "pump", ml: ml, ts: ts, who: WHO };
   if (editingIdx !== null) entries[editingIdx] = entry; else entries.unshift(entry);
-  entries.sort((a,b) => b.ts - a.ts);
-  closeModal("pump"); renderHome(); renderRecent(); await saveData();
+  entries.sort(function(a,b) { return b.ts - a.ts; });
+  closeModal("pump"); renderHome(); renderRecent(); saveData();
 }
 
 // ---- Reset ----
-async function doReset() {
+function doReset() {
   entries = [];
   closeModal("reset");
   document.getElementById("reset-confirm-input").value = "";
-  renderHome(); renderRecent(); await saveData();
+  renderHome(); renderRecent(); saveData();
 }
 
 // ---- Log filters ----
 function setLogFilter(filter, btn) {
   logFilter = filter;
   logPage = 0;
-  document.querySelectorAll("#date-filters .preset-btn").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll("#date-filters .preset-btn").forEach(function(b) { b.classList.remove("active"); });
   btn.classList.add("active");
   renderRecent();
 }
 function setTypeFilter(type, btn) {
   logTypeFilter = type;
   logPage = 0;
-  document.querySelectorAll("#type-filters .preset-btn").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll("#type-filters .preset-btn").forEach(function(b) { b.classList.remove("active"); });
   btn.classList.add("active");
   renderRecent();
 }
-
 function getFilteredEntries() {
-  let filtered = entries;
+  var filtered = entries.slice();
   if (logFilter === "today") {
-    const start = new Date(); start.setHours(0,0,0,0);
-    filtered = filtered.filter(e => e.ts >= start.getTime());
+    var start = new Date(); start.setHours(0,0,0,0);
+    filtered = filtered.filter(function(e) { return e.ts >= start.getTime(); });
   } else if (logFilter !== 0) {
-    filtered = filtered.filter(e => e.ts >= Date.now() - logFilter * 86400000);
+    var cutoff = Date.now() - logFilter * 86400000;
+    filtered = filtered.filter(function(e) { return e.ts >= cutoff; });
   }
-  if (logTypeFilter !== "all") filtered = filtered.filter(e => e.type === logTypeFilter);
+  if (logTypeFilter !== "all") filtered = filtered.filter(function(e) { return e.type === logTypeFilter; });
   return filtered;
+}
+
+// ---- Prev-type timestamp map ----
+function buildPrevTsMap() {
+  var map = new Map();
+  var lastSeen = {};
+  var reversed = entries.slice().reverse();
+  for (var i = 0; i < reversed.length; i++) {
+    var e = reversed[i];
+    if (lastSeen[e.type] !== undefined) map.set(e, lastSeen[e.type]);
+    lastSeen[e.type] = e.ts;
+  }
+  return map;
 }
 
 // ---- Recent / Log ----
 function renderRecent() {
-  const list = document.getElementById("recent-list");
-  const pagination = document.getElementById("pagination-controls");
+  var list = document.getElementById("recent-list");
+  var pagination = document.getElementById("pagination-controls");
   if (!list) return;
-
-  const filtered = getFilteredEntries();
+  var filtered = getFilteredEntries();
   if (!filtered.length) {
     list.innerHTML = "<p style='color:#475569'>No entries for this period.</p>";
     pagination.innerHTML = "";
     return;
   }
-
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  var prevTsMap = buildPrevTsMap();
+  var totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   if (logPage >= totalPages) logPage = totalPages - 1;
-  const pageEntries = filtered.slice(logPage * PAGE_SIZE, (logPage + 1) * PAGE_SIZE);
-
-  list.innerHTML = pageEntries.map(e => {
-    const globalIdx = entries.indexOf(e);
-    let volume = "", ratio = "";
+  var pageEntries = filtered.slice(logPage * PAGE_SIZE, (logPage + 1) * PAGE_SIZE);
+  var html = "";
+  for (var i = 0; i < pageEntries.length; i++) {
+    var e = pageEntries[i];
+    var globalIdx = entries.indexOf(e);
+    var volume = "", ratio = "";
     if (e.type === "feed") { volume = e.ml + "ml"; ratio = e.ebm + "ml EBM · " + e.formula + "ml formula"; }
     else if (e.type === "pump") { volume = e.ml + "ml"; }
     else if (e.type === "nappy") { volume = e.nappyType.charAt(0).toUpperCase() + e.nappyType.slice(1); }
-    return `
-    <div class="entry-card">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
-        <span style="font-size:18px;font-weight:700;color:#e2e8f0">${TYPE_LABELS[e.type]}</span>
-        <span style="font-size:16px;font-weight:700;color:#e2e8f0">${fmtTime(e.ts)}</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:flex-end">
-        <div>
-          ${volume ? `<div style="font-size:15px;color:#e2e8f0;margin-bottom:2px">${volume}</div>` : ""}
-          ${ratio ? `<div style="font-size:13px;color:#64748b">${ratio}</div>` : ""}
-          <div style="font-size:12px;color:#475569;margin-top:4px">${fmtDate(e.ts)} · ${timeAgo(e.ts)} · by ${e.who}</div>
-        </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;margin-left:12px;flex-shrink:0">
-          <button class="remove-btn" style="color:#818cf8;border-color:#818cf8" onclick="editEntry(${globalIdx})">Edit</button>
-          <div id="del-${globalIdx}"><button class="remove-btn" onclick="showConfirm(${globalIdx})">Remove</button></div>
-        </div>
-      </div>
-    </div>`;
-  }).join("");
-
-  pagination.innerHTML = totalPages > 1 ? `
-    <div class="pagination">
-      <button onclick="changePage(-1)" ${logPage === 0 ? "disabled" : ""}>← Prev</button>
-      <span>Page ${logPage + 1} of ${totalPages} · ${filtered.length} entries</span>
-      <button onclick="changePage(1)" ${logPage >= totalPages - 1 ? "disabled" : ""}>Next →</button>
-    </div>` : `<div style="font-size:12px;color:#475569;padding:8px 0;text-align:center">${filtered.length} entr${filtered.length === 1 ? "y" : "ies"}</div>`;
+    var prevTs = prevTsMap.get(e);
+    var gapStr = "";
+    if (prevTs !== undefined) {
+      var gapMins = Math.round((e.ts - prevTs) / 60000);
+      gapStr = "<div style='font-size:12px;color:#a78bfa;margin-top:3px'>" + fmtGap(gapMins) + " after previous " + TYPE_NAMES[e.type] + "</div>";
+    }
+    html +=
+      "<div class='entry-card'>" +
+        "<div style='display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px'>" +
+          "<span style='font-size:18px;font-weight:700;color:#e2e8f0'>" + TYPE_LABELS[e.type] + "</span>" +
+          "<span style='font-size:16px;font-weight:700;color:#e2e8f0'>" + fmtTime(e.ts) + "</span>" +
+        "</div>" +
+        "<div style='display:flex;justify-content:space-between;align-items:flex-end'>" +
+          "<div>" +
+            (volume ? "<div style='font-size:15px;color:#e2e8f0;margin-bottom:2px'>" + volume + "</div>" : "") +
+            (ratio ? "<div style='font-size:13px;color:#64748b'>" + ratio + "</div>" : "") +
+            gapStr +
+            "<div style='font-size:12px;color:#475569;margin-top:4px'>" + fmtDate(e.ts) + " · " + timeAgo(e.ts) + " · by " + e.who + "</div>" +
+          "</div>" +
+          "<div style='display:flex;flex-direction:column;align-items:flex-end;margin-left:12px;flex-shrink:0'>" +
+            "<button class='remove-btn' style='color:#818cf8;border-color:#818cf8' onclick='editEntry(" + globalIdx + ")'>Edit</button>" +
+            "<div id='del-" + globalIdx + "'><button class='remove-btn' onclick='showConfirm(" + globalIdx + ")'>Remove</button></div>" +
+          "</div>" +
+        "</div>" +
+      "</div>";
+  }
+  list.innerHTML = html;
+  pagination.innerHTML = totalPages > 1
+    ? "<div class='pagination'>" +
+        "<button onclick='changePage(-1)' " + (logPage === 0 ? "disabled" : "") + ">← Prev</button>" +
+        "<span>Page " + (logPage + 1) + " of " + totalPages + " · " + filtered.length + " entries</span>" +
+        "<button onclick='changePage(1)' " + (logPage >= totalPages - 1 ? "disabled" : "") + ">Next →</button>" +
+      "</div>"
+    : "<div style='font-size:12px;color:#475569;padding:8px 0;text-align:center'>" + filtered.length + " entr" + (filtered.length === 1 ? "y" : "ies") + "</div>";
 }
 
 function changePage(dir) { logPage += dir; renderRecent(); window.scrollTo(0,0); }
-
 function editEntry(i) { openModal(entries[i].type, i); }
-
 function showConfirm(i) {
-  document.getElementById("del-" + i).innerHTML = `
-    <div style="display:flex;gap:6px;margin-top:4px">
-      <button style="font-size:12px;padding:4px 8px;border-radius:8px;border:1px solid #2e2e42;background:#2e2e42;color:#94a3b8;cursor:pointer" onclick="renderRecent()">Keep</button>
-      <button style="font-size:12px;padding:4px 8px;border-radius:8px;border:none;background:#ef4444;color:#fff;cursor:pointer" onclick="deleteEntry(${i})">Delete</button>
-    </div>`;
+  document.getElementById("del-" + i).innerHTML =
+    "<div style='display:flex;gap:6px;margin-top:4px'>" +
+      "<button style='font-size:12px;padding:4px 8px;border-radius:8px;border:1px solid #2e2e42;background:#2e2e42;color:#94a3b8;cursor:pointer' onclick='renderRecent()'>Keep</button>" +
+      "<button style='font-size:12px;padding:4px 8px;border-radius:8px;border:none;background:#ef4444;color:#fff;cursor:pointer' onclick='deleteEntry(" + i + ")'>Delete</button>" +
+    "</div>";
 }
-async function deleteEntry(i) { entries.splice(i, 1); renderRecent(); renderHome(); await saveData(); }
+function deleteEntry(i) { entries.splice(i, 1); renderRecent(); renderHome(); saveData(); }
 
 // ---- Trends ----
 function setPreset(days, btn) {
   trendDays = days;
-  document.querySelectorAll("#page-trends .preset-btn").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll("#trend-filters .preset-btn").forEach(function(b) { b.classList.remove("active"); });
   btn.classList.add("active");
   renderTrends();
 }
 
 function periodData() {
-  let days;
+  var days = [];
   if (trendDays === 0) {
     if (!entries.length) return [];
-    const oldest = Math.min(...entries.map(e => e.ts));
-    const d = new Date(oldest); d.setHours(0,0,0,0);
-    const total = Math.ceil((Date.now() - d.getTime()) / 86400000);
+    var oldest = Math.min.apply(null, entries.map(function(e) { return e.ts; }));
+    var dStart = new Date(oldest); dStart.setHours(0,0,0,0);
+    var total = Math.ceil((Date.now() - dStart.getTime()) / 86400000);
     if (total > 14) {
-      // Aggregate to weeks
-      const weeks = [];
-      let w = d.getTime();
+      var weeks = [];
+      var w = dStart.getTime();
       while (w <= Date.now()) { weeks.push(w); w += 7 * 86400000; }
-      return weeks.map(ws => {
-        const we = ws + 7 * 86400000;
-        const label = new Date(ws).toLocaleDateString([], { day: "numeric", month: "short" });
-        return buildPeriod(label, entries.filter(e => e.ts >= ws && e.ts < we));
+      return weeks.map(function(ws) {
+        var we = ws + 7 * 86400000;
+        var label = new Date(ws).toLocaleDateString([], { day: "numeric", month: "short" });
+        return buildPeriod(label, entries.filter(function(e) { return e.ts >= ws && e.ts < we; }));
       });
     }
-    days = Array.from({ length: total }, (_, i) => d.getTime() + i * 86400000);
+    for (var i = 0; i < total; i++) days.push(dStart.getTime() + i * 86400000);
   } else {
-    days = Array.from({ length: trendDays }, (_, i) => {
-      const d = new Date(); d.setDate(d.getDate() - (trendDays - 1 - i)); d.setHours(0,0,0,0);
-      return d.getTime();
-    });
+    for (var j = 0; j < trendDays; j++) {
+      var d = new Date(); d.setDate(d.getDate() - (trendDays - 1 - j)); d.setHours(0,0,0,0);
+      days.push(d.getTime());
+    }
   }
-  return days.map(dayStart => {
-    const d = new Date(dayStart);
-    const label = trendDays <= 7
+  return days.map(function(dayStart) {
+    var d = new Date(dayStart);
+    var label = trendDays <= 7
       ? d.toLocaleDateString([], { weekday: "short" })
       : d.toLocaleDateString([], { day: "numeric", month: "short" });
-    return buildPeriod(label, entries.filter(e => e.ts >= dayStart && e.ts < dayStart + 86400000));
+    return buildPeriod(label, entries.filter(function(e) { return e.ts >= dayStart && e.ts < dayStart + 86400000; }));
   });
 }
 
 function buildPeriod(label, day) {
-  const feeds = day.filter(e => e.type === "feed");
-  const feedMl = feeds.reduce((s,e) => s+(e.ml||0), 0);
-  const ebmMl = feeds.reduce((s,e) => s+(e.ebm||0), 0);
-  const formulaMl = feeds.reduce((s,e) => s+(e.formula||0), 0);
-  const pumpMl = day.filter(e => e.type==="pump").reduce((s,e) => s+(e.ml||0), 0);
-  const feedCount = feeds.length;
-  const avgFeed = feedCount ? Math.round(feedMl / feedCount) : 0;
-  const wet = day.filter(e => e.type==="nappy" && e.nappyType==="wet").length;
-  const dirty = day.filter(e => e.type==="nappy" && e.nappyType==="dirty").length;
-  const both = day.filter(e => e.type==="nappy" && e.nappyType==="both").length;
-  return { label, feedMl, ebmMl, formulaMl, pumpMl, feedCount, avgFeed, wet, dirty, both };
+  var feeds = day.filter(function(e) { return e.type === "feed"; });
+  var feedMl = feeds.reduce(function(s,e) { return s+(e.ml||0); }, 0);
+  var ebmMl = feeds.reduce(function(s,e) { return s+(e.ebm||0); }, 0);
+  var formulaMl = feeds.reduce(function(s,e) { return s+(e.formula||0); }, 0);
+  var pumpMl = day.filter(function(e) { return e.type==="pump"; }).reduce(function(s,e) { return s+(e.ml||0); }, 0);
+  var feedCount = feeds.length;
+  var avgFeed = feedCount ? Math.round(feedMl / feedCount) : 0;
+  var wet = day.filter(function(e) { return e.type==="nappy" && e.nappyType==="wet"; }).length;
+  var dirty = day.filter(function(e) { return e.type==="nappy" && e.nappyType==="dirty"; }).length;
+  var both = day.filter(function(e) { return e.type==="nappy" && e.nappyType==="both"; }).length;
+  var feedTimes = feeds.map(function(e) { return e.ts; }).sort(function(a,b) { return a-b; });
+  var avgGap = null;
+  if (feedTimes.length >= 2) {
+    var gaps = [];
+    for (var i = 1; i < feedTimes.length; i++) gaps.push((feedTimes[i] - feedTimes[i-1]) / 60000);
+    avgGap = Math.round(gaps.reduce(function(s,g) { return s+g; }, 0) / gaps.length);
+  }
+  return { label: label, feedMl: feedMl, ebmMl: ebmMl, formulaMl: formulaMl, pumpMl: pumpMl, feedCount: feedCount, avgFeed: avgFeed, wet: wet, dirty: dirty, both: both, avgGap: avgGap };
 }
 
-const COPTS = {
+var COPTS = {
   responsive: true,
   plugins: { legend: { labels: { color: "#94a3b8", font: { size: 12 } } } },
   scales: {
@@ -707,33 +747,36 @@ const COPTS = {
 
 function mkChart(id, config) {
   if (charts[id]) { charts[id].destroy(); delete charts[id]; }
-  const canvas = document.getElementById(id);
+  var canvas = document.getElementById(id);
   if (!canvas) return;
   charts[id] = new Chart(canvas, config);
 }
 
 function renderTrends() {
-  const d = periodData();
+  var d = periodData();
   if (!d.length) return;
-  const labels = d.map(x => x.label);
-  const totalFeed = d.reduce((s,x) => s+x.feedMl, 0);
-  const totalPump = d.reduce((s,x) => s+x.pumpMl, 0);
-  const totalNappies = d.reduce((s,x) => s+x.wet+x.dirty+x.both, 0);
-  const totalFeeds = d.reduce((s,x) => s+x.feedCount, 0);
-  const avgFeed = totalFeeds ? Math.round(totalFeed / totalFeeds) : 0;
-  document.getElementById("trends-summary").innerHTML = `
-    <div class="summary-card"><div class="val">${totalFeed}ml</div><div class="lbl">Total fed</div></div>
-    <div class="summary-card"><div class="val">${totalPump}ml</div><div class="lbl">Total pumped</div></div>
-    <div class="summary-card"><div class="val">${totalNappies}</div><div class="lbl">Nappies</div></div>
-    <div class="summary-card"><div class="val">${avgFeed}ml</div><div class="lbl">Avg feed size</div></div>`;
+  var labels = d.map(function(x) { return x.label; });
+  var totalFeed = d.reduce(function(s,x) { return s+x.feedMl; }, 0);
+  var totalPump = d.reduce(function(s,x) { return s+x.pumpMl; }, 0);
+  var totalNappies = d.reduce(function(s,x) { return s+x.wet+x.dirty+x.both; }, 0);
+  var totalFeeds = d.reduce(function(s,x) { return s+x.feedCount; }, 0);
+  var avgFeed = totalFeeds ? Math.round(totalFeed / totalFeeds) : 0;
+  document.getElementById("trends-summary").innerHTML =
+    "<div class='summary-card'><div class='val'>" + totalFeed + "ml</div><div class='lbl'>Total fed</div></div>" +
+    "<div class='summary-card'><div class='val'>" + totalPump + "ml</div><div class='lbl'>Total pumped</div></div>" +
+    "<div class='summary-card'><div class='val'>" + totalNappies + "</div><div class='lbl'>Nappies</div></div>" +
+    "<div class='summary-card'><div class='val'>" + avgFeed + "ml</div><div class='lbl'>Avg feed size</div></div>";
 
-  const stacked = { ...COPTS, scales: { ...COPTS.scales, x: { ...COPTS.scales.x, stacked: true }, y: { ...COPTS.scales.y, stacked: true } } };
-  mkChart("c-feed", { type:"bar", data:{ labels, datasets:[{ label:"Feed ml", data:d.map(x=>x.feedMl), backgroundColor:"#3b82f6", borderRadius:4 }]}, options:COPTS });
-  mkChart("c-ebm",  { type:"bar", data:{ labels, datasets:[{ label:"EBM", data:d.map(x=>x.ebmMl), backgroundColor:"#818cf8", stack:"a" }, { label:"Formula", data:d.map(x=>x.formulaMl), backgroundColor:"#f59e0b", stack:"a", borderRadius:4 }]}, options:stacked });
-  mkChart("c-pump", { type:"bar", data:{ labels, datasets:[{ label:"Pumped ml", data:d.map(x=>x.pumpMl), backgroundColor:"#ec4899", borderRadius:4 }]}, options:COPTS });
-  mkChart("c-nappy",{ type:"bar", data:{ labels, datasets:[{ label:"Wet", data:d.map(x=>x.wet), backgroundColor:"#38bdf8", stack:"a" }, { label:"Dirty", data:d.map(x=>x.dirty), backgroundColor:"#a78bfa", stack:"a" }, { label:"Both", data:d.map(x=>x.both), backgroundColor:"#34d399", stack:"a", borderRadius:4 }]}, options:stacked });
-  mkChart("c-freq", { type:"bar", data:{ labels, datasets:[{ label:"Feeds", data:d.map(x=>x.feedCount), backgroundColor:"#3b82f6", borderRadius:4, yAxisID:"y" }, { type:"line", label:"Avg ml", data:d.map(x=>x.avgFeed), borderColor:"#fbbf24", backgroundColor:"#fbbf24", pointRadius:4, yAxisID:"y2", tension:0.3 }]},
-    options:{ ...COPTS, scales:{ x:COPTS.scales.x, y:{ ...COPTS.scales.y, position:"left" }, y2:{ ticks:{ color:"#64748b", font:{ size:11 } }, grid:{ drawOnChartArea:false }, position:"right", beginAtZero:true } } } });
+  var stacked = { responsive: true, plugins: { legend: { labels: { color: "#94a3b8", font: { size: 12 } } } }, scales: { x: { ticks: { color: "#64748b", font: { size: 11 } }, grid: { color: "#1e1e2e" }, stacked: true }, y: { ticks: { color: "#64748b", font: { size: 11 } }, grid: { color: "#2e2e42" }, beginAtZero: true, stacked: true } } };
+
+  mkChart("c-feed", { type:"bar", data:{ labels: labels, datasets:[{ label:"Feed ml", data: d.map(function(x){return x.feedMl;}), backgroundColor:"#3b82f6", borderRadius:4 }]}, options: COPTS });
+  mkChart("c-ebm",  { type:"bar", data:{ labels: labels, datasets:[{ label:"EBM", data: d.map(function(x){return x.ebmMl;}), backgroundColor:"#818cf8", stack:"a" }, { label:"Formula", data: d.map(function(x){return x.formulaMl;}), backgroundColor:"#f59e0b", stack:"a", borderRadius:4 }]}, options: stacked });
+  mkChart("c-gap",  { type:"line", data:{ labels: labels, datasets:[{ label:"Avg gap (mins)", data: d.map(function(x){return x.avgGap;}), borderColor:"#a78bfa", backgroundColor:"rgba(167,139,250,0.15)", pointRadius:4, fill:true, tension:0.3, spanGaps:true }]},
+    options:{ responsive:true, plugins:{ legend:{ labels:{ color:"#94a3b8", font:{ size:12 } } }, tooltip:{ callbacks:{ label: function(ctx) { var v = ctx.raw; return v ? Math.floor(v/60)+"h "+Math.round(v%60)+"m" : "n/a"; } } } }, scales: COPTS.scales } });
+  mkChart("c-pump", { type:"bar", data:{ labels: labels, datasets:[{ label:"Pumped ml", data: d.map(function(x){return x.pumpMl;}), backgroundColor:"#ec4899", borderRadius:4 }]}, options: COPTS });
+  mkChart("c-nappy",{ type:"bar", data:{ labels: labels, datasets:[{ label:"Wet", data: d.map(function(x){return x.wet;}), backgroundColor:"#38bdf8", stack:"a" }, { label:"Dirty", data: d.map(function(x){return x.dirty;}), backgroundColor:"#a78bfa", stack:"a" }, { label:"Both", data: d.map(function(x){return x.both;}), backgroundColor:"#34d399", stack:"a", borderRadius:4 }]}, options: stacked });
+  mkChart("c-freq", { type:"bar", data:{ labels: labels, datasets:[{ label:"Feeds", data: d.map(function(x){return x.feedCount;}), backgroundColor:"#3b82f6", borderRadius:4, yAxisID:"y" }, { type:"line", label:"Avg ml", data: d.map(function(x){return x.avgFeed;}), borderColor:"#fbbf24", backgroundColor:"#fbbf24", pointRadius:4, yAxisID:"y2", tension:0.3 }]},
+    options:{ responsive:true, plugins:{ legend:{ labels:{ color:"#94a3b8", font:{ size:12 } } } }, scales:{ x: COPTS.scales.x, y:{ ticks:{ color:"#64748b", font:{ size:11 } }, grid:{ color:"#2e2e42" }, beginAtZero:true, position:"left" }, y2:{ ticks:{ color:"#64748b", font:{ size:11 } }, grid:{ drawOnChartArea:false }, position:"right", beginAtZero:true } } } });
 }
 </script>
 </body>
