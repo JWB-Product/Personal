@@ -386,7 +386,8 @@ function fmtGap(mins) {
 }
 function nowLocal() {
   var d = new Date(); d.setSeconds(0, 0);
-  return d.toISOString().slice(0, 16);
+  var offset = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - offset).toISOString().slice(0, 16);
 }
 function tsFromInput(id) {
   var v = document.getElementById(id).value;
@@ -458,7 +459,8 @@ function renderHome() {
 function openModal(type, idx) {
   editingIdx = (idx !== undefined) ? idx : null;
   var existing = (editingIdx !== null) ? entries[editingIdx] : null;
-  var tsVal = existing ? new Date(existing.ts).toISOString().slice(0,16) : nowLocal();
+  var offset = new Date().getTimezoneOffset() * 60000;
+  var tsVal = existing ? new Date(existing.ts - offset).toISOString().slice(0,16) : nowLocal();
   if (type === "nappy") {
     selectedNappy = null;
     document.querySelectorAll(".nappy-opt").forEach(function(b) { b.classList.remove("selected"); });
