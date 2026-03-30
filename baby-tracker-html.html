@@ -428,7 +428,7 @@ function renderHome() {
     if (!el) return;
     var e = entries.find(function(x) { return x.type === type; });
     if (e) {
-      el.innerHTML = "<span style='font-size:14px;color:#818cf8;font-weight:600'>Last " + TYPE_NAMES[type] + " " + fmtFull(e.ts) + "</span>";
+      el.innerHTML = "<span style='font-size:14px;color:#818cf8;font-weight:600'>Last " + TYPE_NAMES[type] + " " + fmtFull(e.ts) + " (" + timeAgo(e.ts) + ")</span>";
     } else {
       el.textContent = "No entries yet";
     }
