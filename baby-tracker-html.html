@@ -73,7 +73,7 @@
   const WORKER_URL   = "https://crimson-field-cfbb.backupjwb.workers.dev/";
   const APP_SECRET   = "x7k#mP2$qL9vR4nW";
   const PAGE_SIZE  = 20;
-  const MAX_ENTRIES = 4000;
+  const MAX_ENTRIES = 3000;
 </script>
 
 <div class="toast" id="toast"></div>
@@ -229,6 +229,10 @@ var editingIdx = null;
 var swipeStartX = null;
 var charts = {};
 var toastTimer = null;
+var dataLoaded = false;
+var lastFetchTime = 0;
+var cachedPrevTsMap = null;
+var entriesVersion = 0;
 
 var ICONS = { feed: "🍼", nappy: "🩲", pump: "🤱" };
 var TYPE_LABELS = { feed: "🍼 Feed", nappy: "🩲 Nappy", pump: "🤱 Pump" };
@@ -246,7 +250,10 @@ document.getElementById("reset-confirm-input").addEventListener("input", functio
   document.getElementById("reset-btn").disabled = this.value.trim().toLowerCase() !== "reset";
 });
 document.addEventListener("visibilitychange", function() {
-  if (!document.hidden && WHO) refreshData(true);
+  if (!document.hidden && WHO) {
+    var now = Date.now();
+    if (now - lastFetchTime > 60000) refreshData(true);
+  }
 });
 window.addEventListener("load", function() {
   var saved = localStorage.getItem("ll_who");
@@ -282,6 +289,7 @@ function hideToast() { document.getElementById("toast").className = "toast"; }
 function loadData() {
   if (!WORKER_URL || WORKER_URL === "PASTE_YOUR_WORKER_URL_HERE") {
     entries = JSON.parse(localStorage.getItem("ll_entries") || "[]");
+    dataLoaded = true;
     return Promise.resolve();
   }
   return fetch(WORKER_URL, { headers: { "X-App-Secret": APP_SECRET } })
@@ -292,14 +300,23 @@ function loadData() {
     .then(function(d) {
       entries = (d.entries || []).slice(0, MAX_ENTRIES);
       localStorage.setItem("ll_entries", JSON.stringify(entries));
+      dataLoaded = true;
+      lastFetchTime = Date.now();
+      cachedPrevTsMap = null;
+      entriesVersion++;
     })
     .catch(function() {
       showToast("Could not load from server - showing local data", "error");
       entries = JSON.parse(localStorage.getItem("ll_entries") || "[]");
+      dataLoaded = true;
     });
 }
 
 function saveData() {
+  if (!dataLoaded) {
+    showToast("Still loading - please wait", "error");
+    return Promise.resolve();
+  }
   showToast("Saving...", "saving");
   if (entries.length > MAX_ENTRIES) entries = entries.slice(0, MAX_ENTRIES);
   localStorage.setItem("ll_entries", JSON.stringify(entries));
@@ -529,6 +546,7 @@ function saveFeed() {
   var entry = { type: "feed", ml: ml, ebm: ebm, formula: ml - ebm, ts: ts, who: WHO };
   if (editingIdx !== null) entries[editingIdx] = entry; else entries.unshift(entry);
   entries.sort(function(a,b) { return b.ts - a.ts; });
+  cachedPrevTsMap = null; entriesVersion++;
   closeModal("feed"); renderHome(); renderRecent(); saveData();
 }
 
@@ -544,6 +562,7 @@ function saveNappy() {
   var entry = { type: "nappy", nappyType: selectedNappy, ts: ts, who: WHO };
   if (editingIdx !== null) entries[editingIdx] = entry; else entries.unshift(entry);
   entries.sort(function(a,b) { return b.ts - a.ts; });
+  cachedPrevTsMap = null; entriesVersion++;
   closeModal("nappy"); renderHome(); renderRecent(); saveData();
 }
 
@@ -554,6 +573,7 @@ function savePump() {
   var entry = { type: "pump", ml: ml, ts: ts, who: WHO };
   if (editingIdx !== null) entries[editingIdx] = entry; else entries.unshift(entry);
   entries.sort(function(a,b) { return b.ts - a.ts; });
+  cachedPrevTsMap = null; entriesVersion++;
   closeModal("pump"); renderHome(); renderRecent(); saveData();
 }
 
@@ -593,8 +613,9 @@ function getFilteredEntries() {
   return filtered;
 }
 
-// ---- Prev-type timestamp map ----
+// ---- Prev-type timestamp map (cached) ----
 function buildPrevTsMap() {
+  if (cachedPrevTsMap) return cachedPrevTsMap;
   var map = new Map();
   var lastSeen = {};
   var reversed = entries.slice().reverse();
@@ -603,6 +624,7 @@ function buildPrevTsMap() {
     if (lastSeen[e.type] !== undefined) map.set(e, lastSeen[e.type]);
     lastSeen[e.type] = e.ts;
   }
+  cachedPrevTsMap = map;
   return map;
 }
 
@@ -674,7 +696,7 @@ function showConfirm(i) {
       "<button style='font-size:12px;padding:4px 8px;border-radius:8px;border:none;background:#ef4444;color:#fff;cursor:pointer' onclick='deleteEntry(" + i + ")'>Delete</button>" +
     "</div>";
 }
-function deleteEntry(i) { entries.splice(i, 1); renderRecent(); renderHome(); saveData(); }
+function deleteEntry(i) { entries.splice(i, 1); cachedPrevTsMap = null; entriesVersion++; renderRecent(); renderHome(); saveData(); }
 
 // ---- Trends ----
 function setPreset(days, btn) {
@@ -754,7 +776,13 @@ function mkChart(id, config) {
   charts[id] = new Chart(canvas, config);
 }
 
+var lastTrendsVersion = -1;
+var lastTrendsDays = -1;
+
 function renderTrends() {
+  if (entriesVersion === lastTrendsVersion && trendDays === lastTrendsDays) return;
+  lastTrendsVersion = entriesVersion;
+  lastTrendsDays = trendDays;
   var d = periodData();
   if (!d.length) return;
   var labels = d.map(function(x) { return x.label; });
