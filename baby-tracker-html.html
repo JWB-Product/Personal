@@ -82,7 +82,7 @@ var MAX_ENTRIES = 3000;
     <h1 style="font-size:26px;color:#f1f5f9;font-weight:700;margin-bottom:8px">Bowen's Business</h1>
     <p style="color:#94a3b8;font-size:15px;line-height:1.5;margin-bottom:32px">Shared baby tracker for feeds, nappies and pumping. Enter your name to get started.</p>
     <label style="font-size:15px;font-weight:600;color:#e2e8f0;margin-bottom:8px">Your name</label>
-    <input type="text" id="nameInput" placeholder="e.g. Joe" style="margin-bottom:16px">
+    <input type="text" id="nameInput" placeholder="e.g. Lord Farquad" style="margin-bottom:16px">
     <button class="btn btn-primary" id="nameBtn" disabled onclick="startApp()">Get started</button>
   </div>
 </div>
@@ -238,7 +238,7 @@ var logFilter      = "today";
 var logTypeFilter  = "all";
 var logPage        = 0;
 var currentTab     = 0;
-var editingIdx     = null;
+var editingEntryId = null;
 var swipeStartX    = null;
 var charts         = {};
 var toastTimer     = null;
@@ -255,7 +255,7 @@ document.getElementById("nameInput").addEventListener("input", function() {
   document.getElementById("nameBtn").disabled = !this.value.trim();
 });
 document.getElementById("nameInput").addEventListener("keydown", function(e) {
-  if (e.key === "Enter" && this.value.trim()) startApp();
+  if (e.key === "Enter" && this.value.trim()) startApp();å
 });
 document.getElementById("reset-confirm-input").addEventListener("input", function() {
   document.getElementById("reset-btn").disabled = this.value.trim().toLowerCase() !== "reset";
@@ -283,6 +283,10 @@ function launchApp() {
   if (cached) {
     try {
       entries = JSON.parse(cached);
+      entries = entries.map(function(e){
+        if (!e.id) e.id = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : (Date.now().toString(36)+Math.random().toString(36).slice(2));
+        return e;
+      });
       dataLoaded = true;
       renderHome();
     } catch(e) {
@@ -304,19 +308,36 @@ function showToast(msg, type) {
 function hideToast() { document.getElementById("toast").className = "toast"; }
 
 // ---- Data ----
+var editingEntryId = null;
+
+function apiFetch(path, options) {
+  if (!WORKER_URL || WORKER_URL === "PASTE_YOUR_WORKER_URL_HERE") {
+    return Promise.reject(new Error("Worker URL not configured"));
+  }
+  var url = WORKER_URL.replace(/\/+$/, "") + path + "?t=" + Date.now();
+  var headers = { "X-App-Secret": APP_SECRET };
+  if (!options || !options.headers) options = Object.assign({}, options, { headers: headers });
+  else options.headers = Object.assign({}, options.headers, headers);
+  return fetch(url, options).then(function(r) {
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    if (r.status === 204) return null;
+    return r.json();
+  });
+}
+
 function loadData() {
   if (!WORKER_URL || WORKER_URL === "PASTE_YOUR_WORKER_URL_HERE") {
     entries = JSON.parse(localStorage.getItem("ll_entries") || "[]");
     dataLoaded = true;
     return Promise.resolve();
   }
-  return fetch(WORKER_URL + "?t=" + Date.now(), { headers: { "X-App-Secret": APP_SECRET } })
-    .then(function(r) {
-      if (!r.ok) throw new Error("HTTP " + r.status);
-      return r.json();
-    })
+
+  return apiFetch("/entries", { method: "GET" })
     .then(function(d) {
-      entries = (d.entries || []).slice(0, MAX_ENTRIES);
+      entries = (d.entries || []).slice(0, MAX_ENTRIES).map(function(e){
+        if (!e.id) e.id = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : (Date.now().toString(36)+Math.random().toString(36).slice(2));
+        return e;
+      });
       localStorage.setItem("ll_entries", JSON.stringify(entries));
       dataLoaded = true;
       serverConnected = true;
@@ -338,29 +359,6 @@ function loadData() {
     });
 }
 
-function saveData() {
-  if (!dataLoaded) { showToast("Still loading - please wait", "error"); return; }
-  if (!serverConnected) { showToast("Not connected to server - save blocked", "error"); return; }
-  if (entries.length > MAX_ENTRIES) entries = entries.slice(0, MAX_ENTRIES);
-  localStorage.setItem("ll_entries", JSON.stringify(entries));
-  if (!WORKER_URL || WORKER_URL === "PASTE_YOUR_WORKER_URL_HERE") return;
-  showToast("Saving...", "saving");
-  fetch(WORKER_URL + "?t=" + Date.now(), {
-    method: "PUT",
-    headers: { "Content-Type": "application/json", "X-App-Secret": APP_SECRET },
-    body: JSON.stringify({ entries: entries })
-  })
-  .then(function(r) {
-    if (!r.ok) throw new Error();
-    showToast("Saved", "success");
-  })
-  .catch(function() {
-    serverConnected = false;
-    updateConnectionStatus();
-    showToast("Save failed - logging disabled until reconnected", "error");
-  });
-}
-
 function refreshData(silent) {
   if (!silent) showToast("Refreshing...", "saving");
   return loadData().then(function() {
@@ -369,6 +367,100 @@ function refreshData(silent) {
     if (currentTab === 2) { lastTrendVer = -1; renderTrends(); }
     if (!silent) showToast("Updated", "success");
   });
+}
+
+function persistEntriesToLocal() {
+  if (entries.length > MAX_ENTRIES) entries = entries.slice(0, MAX_ENTRIES);
+  localStorage.setItem("ll_entries", JSON.stringify(entries));
+}
+
+function upsertEntryOnServer(entry, id) {
+  if (!dataLoaded || !serverConnected) {
+    showToast("Not connected -> action blocked", "error");
+    return Promise.reject(new Error("offline"));
+  }
+
+  var method = id ? "PUT" : "POST";
+  var path = id ? "/entries/" + encodeURIComponent(id) : "/entries";
+  return apiFetch(path, { method: method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(entry) });
+}
+
+function removeEntryFromServer(id) {
+  if (!dataLoaded || !serverConnected) {
+    showToast("Not connected -> action blocked", "error");
+    return Promise.reject(new Error("offline"));
+  }
+  return apiFetch("/entries/" + encodeURIComponent(id), { method: "DELETE" });
+}
+
+function saveEntry(entry) {
+  showToast("Saving...", "saving");
+  return upsertEntryOnServer(entry, editingEntryId)
+    .then(function(resp) {
+      var saved = resp && resp.entry ? resp.entry : entry;
+      if (editingEntryId) {
+        entries = entries.map(function(e) { return e.id === editingEntryId ? saved : e; });
+      } else {
+        entries.unshift(saved);
+      }
+      entries.sort(function(a,b){return b.ts-a.ts;});
+      editingEntryId = null;
+      cachedPrevMap = null;
+      entriesVersion++;
+      persistEntriesToLocal();
+      renderHome();
+      renderRecent();
+      if (currentTab === 2) { lastTrendVer = -1; renderTrends(); }
+      showToast("Saved", "success");
+      return saved;
+    })
+    .catch(function(err) {
+      serverConnected = false;
+      updateConnectionStatus();
+      showToast("Save failed - logging disabled until reconnected", "error");
+      throw err;
+    });
+}
+
+function deleteEntry(id) {
+  showToast("Deleting...", "saving");
+  return removeEntryFromServer(id)
+    .then(function() {
+      entries = entries.filter(function(e) { return e.id !== id; });
+      cachedPrevMap = null;
+      entriesVersion++;
+      persistEntriesToLocal();
+      renderRecent();
+      renderHome();
+      if (currentTab === 2) { lastTrendVer = -1; renderTrends(); }
+      showToast("Deleted", "success");
+    })
+    .catch(function() {
+      serverConnected = false;
+      updateConnectionStatus();
+      showToast("Delete failed - logging disabled until reconnected", "error");
+    });
+}
+
+function deleteAllEntries() {
+  if (!entries.length) return Promise.resolve();
+  showToast("Resetting...", "saving");
+  return apiFetch("/entries", { method: "DELETE" })
+    .then(function() {
+      entries = [];
+      cachedPrevMap = null;
+      entriesVersion++;
+      persistEntriesToLocal();
+      renderRecent();
+      renderHome();
+      if (currentTab === 2) { lastTrendVer = -1; renderTrends(); }
+      showToast("All reset", "success");
+    })
+    .catch(function() {
+      serverConnected = false;
+      updateConnectionStatus();
+      showToast("Reset failed", "error");
+    });
 }
 
 // ---- Swipe ----
@@ -505,7 +597,7 @@ function renderHome() {
 function handleBackdropClick(e, type) {
   if (e.target === e.currentTarget) closeModal(type);
 }
-function closeModal(type) { document.getElementById("modal-"+type).style.display = "none"; editingIdx = null; }
+function closeModal(type) { document.getElementById("modal-"+type).style.display = "none"; editingEntryId = null; }
 function openSettings() {
   document.getElementById("settings-name").value = WHO;
   document.getElementById("modal-settings").style.display = "flex";
@@ -523,16 +615,15 @@ function confirmReset() {
   document.getElementById("modal-reset").style.display = "flex";
 }
 function doReset() {
-  entries = []; cachedPrevMap = null; entriesVersion++;
   closeModal("reset");
   document.getElementById("reset-confirm-input").value = "";
-  renderHome(); renderRecent(); saveData();
+  deleteAllEntries();
 }
 
 // ---- Open modal ----
-function openModal(type, idx) {
-  editingIdx = (idx !== undefined) ? idx : null;
-  var ex = (editingIdx !== null) ? entries[editingIdx] : null;
+function openModal(type, entryId) {
+  editingEntryId = entryId || null;
+  var ex = editingEntryId ? entries.find(function(e){return e.id === editingEntryId;}) : null;
   var tsVal = ex ? new Date(ex.ts - new Date().getTimezoneOffset()*60000).toISOString().slice(0,16) : nowLocal();
   if (type === "feed") {
     document.getElementById("feed-modal-title").textContent = ex ? "🍼 Edit Feed" : "🍼 Feed";
@@ -573,10 +664,8 @@ function saveFeed() {
   var ml = +document.getElementById("feed-total").value;
   var ebm = +document.getElementById("feed-ebm").value;
   var entry = { type:"feed", ml:ml, ebm:ebm, formula:ml-ebm, ts:tsFromInput("feed-ts"), who:WHO };
-  if (editingIdx !== null) entries[editingIdx] = entry; else entries.unshift(entry);
-  entries.sort(function(a,b){return b.ts-a.ts;});
-  cachedPrevMap = null; entriesVersion++;
-  closeModal("feed"); renderHome(); renderRecent(); saveData();
+  closeModal("feed");
+  saveEntry(entry);
 }
 
 // ---- Nappy ----
@@ -588,20 +677,16 @@ function selectNappy(type) {
 }
 function saveNappy() {
   var entry = { type:"nappy", nappyType:selectedNappy, ts:tsFromInput("nappy-ts"), who:WHO };
-  if (editingIdx !== null) entries[editingIdx] = entry; else entries.unshift(entry);
-  entries.sort(function(a,b){return b.ts-a.ts;});
-  cachedPrevMap = null; entriesVersion++;
-  closeModal("nappy"); renderHome(); renderRecent(); saveData();
+  closeModal("nappy");
+  saveEntry(entry);
 }
 
 // ---- Pump ----
 function savePump() {
   var ml = +document.getElementById("pump-slider").value;
   var entry = { type:"pump", ml:ml, ts:tsFromInput("pump-ts"), who:WHO };
-  if (editingIdx !== null) entries[editingIdx] = entry; else entries.unshift(entry);
-  entries.sort(function(a,b){return b.ts-a.ts;});
-  cachedPrevMap = null; entriesVersion++;
-  closeModal("pump"); renderHome(); renderRecent(); saveData();
+  closeModal("pump");
+  saveEntry(entry);
 }
 
 // ---- Export ----
@@ -689,8 +774,8 @@ function renderRecent() {
             "<div style='font-size:12px;color:#475569;margin-top:4px'>"+fmtDate(e.ts)+" \u00b7 "+timeAgo(e.ts)+" \u00b7 by "+e.who+"</div>" +
           "</div>" +
           "<div style='display:flex;flex-direction:column;align-items:flex-end;margin-left:12px;flex-shrink:0'>" +
-            "<button class='remove-btn' style='color:#818cf8;border-color:#818cf8' onclick='openModal(&#34;"+e.type+"&#34;,"+gi+")'>Edit</button>" +
-            "<div id='del-"+gi+"'><button class='remove-btn' onclick='showConfirm("+gi+")'>Remove</button></div>" +
+            "<button class='remove-btn' style='color:#818cf8;border-color:#818cf8' onclick='openModal(&#34;"+e.type+"&#34;,\""+e.id+"\")'>Edit</button>" +
+            "<div id='del-"+e.id+"'><button class='remove-btn' onclick='showConfirm(\""+e.id+"\")'>Remove</button></div>" +
           "</div>" +
         "</div>" +
       "</div>";
@@ -701,15 +786,13 @@ function renderRecent() {
     : "<div style='font-size:12px;color:#475569;padding:8px 0;text-align:center'>"+f.length+" entr"+(f.length===1?"y":"ies")+"</div>";
 }
 function changePage(d) { logPage+=d; renderRecent(); window.scrollTo(0,0); }
-function showConfirm(i) {
-  document.getElementById("del-"+i).innerHTML =
+function showConfirm(entryId) {
+  document.getElementById("del-"+entryId).innerHTML =
     "<div style='display:flex;gap:6px;margin-top:4px'>" +
       "<button style='font-size:12px;padding:4px 8px;border-radius:8px;border:1px solid #2e2e42;background:#2e2e42;color:#94a3b8;cursor:pointer' onclick='renderRecent()'>Keep</button>" +
-      "<button style='font-size:12px;padding:4px 8px;border-radius:8px;border:none;background:#ef4444;color:#fff;cursor:pointer' onclick='deleteEntry("+i+")'>Delete</button>" +
+      "<button style='font-size:12px;padding:4px 8px;border-radius:8px;border:none;background:#ef4444;color:#fff;cursor:pointer' onclick='deleteEntry(\""+entryId+"\")'>Delete</button>" +
     "</div>";
 }
-function deleteEntry(i) { entries.splice(i,1); cachedPrevMap=null; entriesVersion++; renderRecent(); renderHome(); saveData(); }
-
 // ---- Trends ----
 function setPreset(d, btn) {
   trendDays = d;
