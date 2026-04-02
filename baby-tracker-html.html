@@ -466,7 +466,10 @@ function deleteEntry(id) {
 function deleteAllEntries() {
   if (!entries.length) return Promise.resolve();
   showToast("Resetting...", "saving");
-  return apiFetch("/entries", { method: "DELETE" })
+  // Supabase worker may be using id=gt.0 for delete-all, which fails for UUID primary keys.
+  // Delete each row explicitly to ensure full reset.
+  var ids = entries.map(function(e){return e.id;});
+  return Promise.all(ids.map(function(id){ return removeEntryFromServer(id); }))
     .then(function() {
       entries = [];
       cachedPrevMap = null;
