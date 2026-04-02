@@ -243,6 +243,7 @@ var swipeStartX    = null;
 var charts         = {};
 var toastTimer     = null;
 var dataLoaded     = false;
+var serverConnected = false;
 var lastFetchTime  = 0;
 var cachedPrevMap  = null;
 var entriesVersion = 0;
@@ -318,14 +319,18 @@ function loadData() {
       entries = (d.entries || []).slice(0, MAX_ENTRIES);
       localStorage.setItem("ll_entries", JSON.stringify(entries));
       dataLoaded = true;
+      serverConnected = true;
       lastFetchTime = Date.now();
       cachedPrevMap = null;
       entriesVersion++;
+      updateConnectionStatus();
       if (currentTab === 1) renderRecent();
       if (currentTab === 2) { lastTrendVer = -1; renderTrends(); }
     })
     .catch(function() {
-      showToast("Could not load from server - showing local data", "error");
+      serverConnected = false;
+      updateConnectionStatus();
+      showToast("Could not reach server - logging disabled", "error");
       if (!dataLoaded) {
         entries = JSON.parse(localStorage.getItem("ll_entries") || "[]");
         dataLoaded = true;
@@ -335,11 +340,12 @@ function loadData() {
 
 function saveData() {
   if (!dataLoaded) { showToast("Still loading - please wait", "error"); return; }
+  if (!serverConnected) { showToast("Not connected to server - save blocked", "error"); return; }
   if (entries.length > MAX_ENTRIES) entries = entries.slice(0, MAX_ENTRIES);
   localStorage.setItem("ll_entries", JSON.stringify(entries));
   if (!WORKER_URL || WORKER_URL === "PASTE_YOUR_WORKER_URL_HERE") return;
   showToast("Saving...", "saving");
-  fetch(WORKER_URL, {
+  fetch(WORKER_URL + "?t=" + Date.now(), {
     method: "PUT",
     headers: { "Content-Type": "application/json", "X-App-Secret": APP_SECRET },
     body: JSON.stringify({ entries: entries })
@@ -349,7 +355,9 @@ function saveData() {
     showToast("Saved", "success");
   })
   .catch(function() {
-    showToast("Save failed - kept locally", "error");
+    serverConnected = false;
+    updateConnectionStatus();
+    showToast("Save failed - logging disabled until reconnected", "error");
   });
 }
 
@@ -429,6 +437,16 @@ function tsFromInput(id) {
 }
 
 // ---- Home ----
+function updateConnectionStatus() {
+  var el = document.getElementById("conn-status");
+  if (!el) return;
+  if (serverConnected) {
+    el.innerHTML = "<span style='color:#4ade80;font-size:12px'>&#9679; Connected</span>";
+  } else {
+    el.innerHTML = "<span style='color:#ef4444;font-size:12px'>&#9679; Offline - logging disabled</span>";
+  }
+}
+
 function renderHomeShell() {
   document.getElementById("page-home").innerHTML =
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">' +
