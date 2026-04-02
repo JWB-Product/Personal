@@ -255,7 +255,7 @@ document.getElementById("nameInput").addEventListener("input", function() {
   document.getElementById("nameBtn").disabled = !this.value.trim();
 });
 document.getElementById("nameInput").addEventListener("keydown", function(e) {
-  if (e.key === "Enter" && this.value.trim()) startApp();å
+  if (e.key === "Enter" && this.value.trim()) startApp();
 });
 document.getElementById("reset-confirm-input").addEventListener("input", function() {
   document.getElementById("reset-btn").disabled = this.value.trim().toLowerCase() !== "reset";
@@ -285,8 +285,9 @@ function launchApp() {
       entries = JSON.parse(cached);
       entries = entries.map(function(e){
         if (!e.id) e.id = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : (Date.now().toString(36)+Math.random().toString(36).slice(2));
-        return e;
+        return normalizeEntry(e);
       });
+      entries.sort(function(a,b){return b.ts - a.ts;});
       dataLoaded = true;
       renderHome();
     } catch(e) {
@@ -319,7 +320,14 @@ function apiFetch(path, options) {
   if (!options || !options.headers) options = Object.assign({}, options, { headers: headers });
   else options.headers = Object.assign({}, options.headers, headers);
   return fetch(url, options).then(function(r) {
-    if (!r.ok) throw new Error("HTTP " + r.status);
+    if (!r.ok) {
+      return r.json().then(function(err) {
+        console.error("API error:", err);
+        throw new Error("HTTP " + r.status + ": " + (err.error || JSON.stringify(err)));
+      }).catch(function(e) {
+        throw new Error("HTTP " + r.status);
+      });
+    }
     if (r.status === 204) return null;
     return r.json();
   });
@@ -336,8 +344,9 @@ function loadData() {
     .then(function(d) {
       entries = (d.entries || []).slice(0, MAX_ENTRIES).map(function(e){
         if (!e.id) e.id = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : (Date.now().toString(36)+Math.random().toString(36).slice(2));
-        return e;
+        return normalizeEntry(e);
       });
+      entries.sort(function(a,b){return b.ts - a.ts;});
       localStorage.setItem("ll_entries", JSON.stringify(entries));
       dataLoaded = true;
       serverConnected = true;
@@ -382,7 +391,18 @@ function upsertEntryOnServer(entry, id) {
 
   var method = id ? "PUT" : "POST";
   var path = id ? "/entries/" + encodeURIComponent(id) : "/entries";
-  return apiFetch(path, { method: method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(entry) });
+  var body = {
+    type: entry.type,
+    ml: entry.ml || null,
+    ebm: entry.ebm || null,
+    formula: entry.formula || null,
+    nappy_type: entry.nappyType || null,
+    ts: entry.ts,
+    who: entry.who
+  };
+  if (entry.id) body.id = entry.id;
+  console.log("Sending entry to", path, ":", body);
+  return apiFetch(path, { method: method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 }
 
 function removeEntryFromServer(id) {
@@ -394,6 +414,7 @@ function removeEntryFromServer(id) {
 }
 
 function saveEntry(entry) {
+  if (!entry.id) entry.id = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : (Date.now().toString(36)+Math.random().toString(36).slice(2));
   showToast("Saving...", "saving");
   return upsertEntryOnServer(entry, editingEntryId)
     .then(function(resp) {
@@ -526,6 +547,19 @@ function nowLocal() {
 function tsFromInput(id) {
   var v = document.getElementById(id).value;
   return v ? new Date(v).getTime() : Date.now();
+}
+function normalizeEntry(e) {
+  if (!e) return e;
+  return {
+    id: e.id,
+    type: e.type,
+    ml: typeof e.ml !== 'undefined' ? e.ml : null,
+    ebm: typeof e.ebm !== 'undefined' ? e.ebm : null,
+    formula: typeof e.formula !== 'undefined' ? e.formula : null,
+    nappyType: e.nappyType || e.nappy_type || null,
+    ts: e.ts,
+    who: e.who
+  };
 }
 
 // ---- Home ----
@@ -676,6 +710,10 @@ function selectNappy(type) {
   document.getElementById("nappy-save-btn").disabled = false;
 }
 function saveNappy() {
+  if (!selectedNappy) {
+    showToast("Please select a nappy type", "error");
+    return;
+  }
   var entry = { type:"nappy", nappyType:selectedNappy, ts:tsFromInput("nappy-ts"), who:WHO };
   closeModal("nappy");
   saveEntry(entry);
@@ -753,11 +791,12 @@ function renderRecent() {
   var html = "";
   for (var i=0; i<page.length; i++) {
     var e = page[i];
+    if (!e || !e.type) continue;
     var gi = entries.indexOf(e);
     var vol="", ratio="";
     if (e.type==="feed") { vol=e.ml+"ml"; ratio=e.ebm+"ml EBM \u00b7 "+e.formula+"ml formula"; }
     else if (e.type==="pump") { vol=e.ml+"ml"; }
-    else if (e.type==="nappy") { vol=e.nappyType.charAt(0).toUpperCase()+e.nappyType.slice(1); }
+    else if (e.type==="nappy") { vol=e.nappyType ? e.nappyType.charAt(0).toUpperCase()+e.nappyType.slice(1) : ""; }
     var prev = prevMap.get(e);
     var gap = prev !== undefined ? "<div style='font-size:12px;color:#a78bfa;margin-top:3px'>"+fmtGap(Math.round((e.ts-prev)/60000))+" after previous "+TYPE_NAMES[e.type]+"</div>" : "";
     html +=

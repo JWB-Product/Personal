@@ -1,60 +1,73 @@
 # Bowen's Business - AI Coding Agent Instructions
 
 ## Project overview
-A single-file HTML baby tracker app for two users. Tracks feeds (ml, EBM vs formula ratio), nappies (wet/dirty/both), and pumping (ml). Shared data between two devices via Cloudflare Worker → Supabase.
+Single-file HTML baby tracker app. Tracks feeds, nappies, and pumps. Data sync via Cloudflare Worker to Supabase. Local cache fallback in localStorage.
 
 ## Architecture
 ```
 index.html (single file app)
-    ↓ fetch + X-App-Secret header
+  - local UI (feed, nappy, pump)
+  - local cache: ll_entries (JSON array)
+  - POST/PUT/DELETE to worker endpoint via fetch + X-App-Secret
 Cloudflare Worker (crimson-field-cfbb.backupjwb.workers.dev)
-    ↓ Supabase REST API
+  - authenticates X-App-Secret against env.APP_SECRET
+  - proxies to Supabase REST API (/rest/v1/entries)
+  - handles GET/POST/PUT/DELETE with row-per-entry semantics
 Supabase (iixfidxyrkvjxpnlxpit.supabase.co)
-    └── entries table: id (int), data (jsonb)
-        ├── id=1 → live data: { entries: [...] }
-        └── id=2 → daily snapshot backup
+  - table: public.entries
+    columns: id (uuid pk), type (text), ml (int4), ebm (int4), formula (int4), nappy_type (text), ts (int8), who (text), created_at (timestamptz), updated_at (timestamptz)
 ```
 
 ## Key constraints
-- **Single file**: all HTML, CSS, and JS lives in `index.html`. No build step, no bundler.
-- **No ES6+ in app JS**: use `var`, standard `function` declarations, and string concatenation throughout. Arrow functions, template literals, `const`/`let`, and special characters (·, ←, →) in JS strings have caused syntax errors in the artifact preview environment. Use Unicode escapes (`\u00b7`, `\u2190`, `\u2192`) instead.
-- **Worker uses ES modules**: the Cloudflare Worker (`worker.js`) uses `export default` and modern JS - this is fine, it runs in a different environment.
-- **No localStorage writes on server failure**: if `serverConnected === false`, saves are blocked entirely. Never fall back to writing stale localStorage data to the server.
+- Single-file: all UI logic in `baby-tracker-html.html`, no bundler.
+- Keep app JS ES5-compatible: `var`, `function`, string concatenation. No `let/const`, templates, arrow functions.
+- Worker can use modern JS (ES module), separate deployment.
+- When `serverConnected === false`, do not send mutations to server; block with error and stop local save.
 
 ## Data model
-All entries stored as a flat array, sorted newest-first by `ts` (Unix ms timestamp):
-```json
-{ "type": "feed", "ml": 90, "ebm": 45, "formula": 45, "ts": 1775033400000, "who": "Tim" }
-{ "type": "nappy", "nappyType": "wet|dirty|both", "ts": 1775033400000, "who": "Bob" }
-{ "type": "pump", "ml": 100, "ts": 1775033400000, "who": "Keith" }
-```
+App object shape:
+- feed: `{type:'feed', id:'uuid', ml:100, ebm:50, formula:50, ts:<ms>, who:'name'}`
+- pump: `{type:'pump', id:'uuid', ml:100, ts:<ms>, who:'name'}`
+- nappy: `{type:'nappy', id:'uuid', nappyType:'wet|dirty|both', ts:<ms>, who:'name'}`
 
-## Critical state variables
-- `dataLoaded` — set true only after a successful server fetch or localStorage fallback. Blocks saves until true.
-- `serverConnected` — set true only after a successful server fetch. Blocks saves if false. Set false on any save or fetch failure.
-- `entriesVersion` — incremented on every entries mutation. Used to avoid unnecessary chart redraws.
-- `cachedPrevMap` — cached Map of entry → previous same-type entry timestamp. Invalidated on any mutation.
+Supabase row shape (worker converts before send):
+- `{id, type, ml, ebm, formula, nappy_type, ts, who}`
 
-## Timezone handling
-- `nowLocal()` subtracts `getTimezoneOffset() * 60000` before calling `.toISOString()` to correctly populate datetime-local inputs in BST.
-- `tsFromInput(id)` uses `new Date(v).getTime()` directly — the browser correctly interprets datetime-local values as local time. Do NOT add timezone offset on read.
-- Never use `.toISOString()` directly for display or input population — it always outputs UTC.
+## Important state
+- `dataLoaded` true only after successful initial load from server or localStorage fallback.
+- `serverConnected` true only when server is reachable; set false on API errors.
+- `entries` array of normalized entries, sorted descending by `ts`.
+- `entriesVersion` for redraw control (charts/trends).
+- `cachedPrevMap` map for nappy/feed gap calcs.
 
-## Deployment
-- App hosted on GitHub Pages (public repo)
-- Worker deployed via Cloudflare dashboard (paste and deploy, no CLI)
-- No CI/CD — manual copy/paste deploy from GitHub browser editor or VS Code push
-- Secrets (`APP_SECRET`, `SUPABASE_KEY`, `SUPABASE_URL`) stored as Cloudflare Worker environment variables, never in the HTML
+## Time handling
+- `nowLocal()`: local datetime-local string generation using UTC offset via `getTimezoneOffset()` subtract.
+- `tsFromInput(id)`: `new Date(inputValue).getTime()` (local date-time parse), no extra offset.
+- On edit modal, input initialized via `new Date(entry.ts - offset).toISOString().slice(0,16)` so local value matches stored UTC instant.
 
-## Patterns to follow
-- All DOM string building uses concatenation: `"<div>" + variable + "</div>"` — no template literals
-- Chart instances stored in `charts` object, destroyed before recreation via `mkChart(id, config)`
-- Filters (`logFilter`, `logTypeFilter`) are independent — AND logic, not OR
-- Pagination at 20 entries per page (`PAGE_SIZE = 20`)
-- All entry mutations must: update `entries`, sort descending by `ts`, set `cachedPrevMap = null`, increment `entriesVersion`, then call `saveData()`
+## Save flow
+1. Create entry object in UI save functions.
+2. `saveEntry()` sets `entry.id` (UUID) if missing.
+3. `upsertEntryOnServer()` maps to Supabase shape:
+   - `nappyType` -> `nappy_type`
+   - `ml`, `ebm`, `formula`, etc.
+4. `apiFetch()` POST/PUT to worker with `X-App-Secret`, JSON body.
+5. On success, update `entries`, sort by `ts` desc, `persistEntriesToLocal()`, `renderHome()`, `renderRecent()`, optionally `renderTrends()`.
+6. On failure, set `serverConnected=false`, show error toast, stop writes.
 
-## Known gotchas
-- Supabase free tier pauses after 1 week of inactivity — first request after pause will fail, triggering offline mode
-- JSONBin (previous backend) had a 10k requests/month limit and aggressive caching — do not revert to it
-- The app previously suffered two data loss incidents from race conditions and stale cache overwrites — the `serverConnected` guard is the primary protection against recurrence
-- Cron trigger in Cloudflare runs at 02:00 daily, snapshots live data (id=1) to backup row (id=2)
+## Log and filters
+- `getFiltered()` applies date and type filters from UI.
+- `renderRecent()` uses `entries` derived from `getFiltered()` with pagination.
+- All log data is newest-first: `entries.sort((a,b)=>b.ts-a.ts)` on every mutation/load.
+- `buildPrevMap()` uses reversed entries stable traversal.
+
+## Common gotchas
+- `nappyType` in JS vs `nappy_type` in DB mapping is critical.
+- API 400 can happen if column names mismatch (the worker currently expects strongly typed Supabase columns).
+- `ts` is int64 Unix ms, not ISO string.
+- local timezone conversion off-by-one can produce future label and false `just now`.
+
+## Deployment notes
+- Cloudflare Worker must be updated if Supabase table schema changes.
+- Worker should return path-specific errors and `details` from Supabase for debugging.
+- Cron backup to row id=2 for snapshot is still referenced in model but may not be in this version.
