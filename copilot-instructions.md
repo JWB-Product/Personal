@@ -47,7 +47,7 @@ Supabase row shape (worker converts before send):
 
 ## Save flow
 1. Create entry object in UI save functions.
-2. `saveEntry()` sets `entry.id` (UUID) if missing.
+2. `saveEntry()` sets `entry.id` if missing: reuses `editingEntryId` when editing, otherwise generates a new UUID. This ensures PUT body and path always reference the same ID — do not change this to always generate a new UUID.
 3. `upsertEntryOnServer()` maps to Supabase shape:
    - `nappyType` -> `nappy_type`
    - `ml`, `ebm`, `formula`, etc.

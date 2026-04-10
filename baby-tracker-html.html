@@ -198,7 +198,15 @@ var MAX_ENTRIES = 3000;
     </div>
     <label>Your name</label>
     <input type="text" id="settings-name" placeholder="Enter name" style="margin-bottom:12px">
-    <button class="btn btn-primary" style="margin-bottom:10px" onclick="saveName()">Save name</button>
+    <button class="btn btn-primary" style="margin-bottom:16px" onclick="saveName()">Save name</button>
+    <div style="border-top:1px solid #1e293b;margin-bottom:16px"></div>
+    <label>Default feed amount (ml)</label>
+    <input type="number" id="settings-default-ml" min="0" max="300" step="5" style="margin-bottom:12px">
+    <label>Default EBM ratio (%)</label>
+    <input type="number" id="settings-default-ebm-ratio" min="0" max="100" step="5" style="margin-bottom:4px">
+    <div style="font-size:12px;color:#64748b;margin-bottom:12px">e.g. 50% means half EBM, half formula</div>
+    <button class="btn btn-primary" style="margin-bottom:16px" onclick="saveDefaultFeed()">Save feed defaults</button>
+    <div style="border-top:1px solid #1e293b;margin-bottom:16px"></div>
     <button class="btn btn-secondary" style="margin-bottom:10px" onclick="closeModal('settings');refreshData()">↻ Refresh data</button>
     <button class="btn btn-secondary" style="margin-bottom:10px" onclick="exportCSV()">⬇ Export as CSV</button>
     <button class="btn" style="width:100%;padding:14px;background:#2a1a1a;color:#ef4444;border:1px solid #3a2020;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer" onclick="closeModal('settings');confirmReset()">Reset all data</button>
@@ -231,6 +239,8 @@ var TAB_NAMES   = ["home","recent","trends"];
 
 // ---- State ----
 var WHO            = "";
+var DEFAULT_FEED_ML    = 90;
+var DEFAULT_EBM_RATIO  = 50;
 var entries        = [];
 var selectedNappy  = null;
 var trendDays      = 7;
@@ -264,6 +274,10 @@ document.addEventListener("visibilitychange", function() {
   if (!document.hidden && WHO && Date.now() - lastFetchTime > 60000) refreshData(true);
 });
 window.addEventListener("load", function() {
+  var savedMl = localStorage.getItem("ll_default_feed_ml");
+  var savedRatio = localStorage.getItem("ll_default_ebm_ratio");
+  if (savedMl !== null) DEFAULT_FEED_ML = +savedMl;
+  if (savedRatio !== null) DEFAULT_EBM_RATIO = +savedRatio;
   var saved = localStorage.getItem("ll_who");
   if (saved) { WHO = saved; launchApp(); }
 });
@@ -414,7 +428,7 @@ function removeEntryFromServer(id) {
 }
 
 function saveEntry(entry) {
-  if (!entry.id) entry.id = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : (Date.now().toString(36)+Math.random().toString(36).slice(2));
+  if (!entry.id) entry.id = editingEntryId || ((typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : (Date.now().toString(36)+Math.random().toString(36).slice(2)));
   showToast("Saving...", "saving");
   return upsertEntryOnServer(entry, editingEntryId)
     .then(function(resp) {
@@ -637,6 +651,8 @@ function handleBackdropClick(e, type) {
 function closeModal(type) { document.getElementById("modal-"+type).style.display = "none"; editingEntryId = null; }
 function openSettings() {
   document.getElementById("settings-name").value = WHO;
+  document.getElementById("settings-default-ml").value = DEFAULT_FEED_ML;
+  document.getElementById("settings-default-ebm-ratio").value = DEFAULT_EBM_RATIO;
   document.getElementById("modal-settings").style.display = "flex";
 }
 function saveName() {
@@ -644,6 +660,17 @@ function saveName() {
   if (!n) return;
   WHO = n; localStorage.setItem("ll_who", WHO);
   closeModal("settings"); showToast("Name updated", "success");
+}
+function saveDefaultFeed() {
+  var ml = +document.getElementById("settings-default-ml").value;
+  var ratio = +document.getElementById("settings-default-ebm-ratio").value;
+  if (isNaN(ml) || ml < 0 || ml > 300) { showToast("Amount must be 0–300ml", "error"); return; }
+  if (isNaN(ratio) || ratio < 0 || ratio > 100) { showToast("Ratio must be 0–100%", "error"); return; }
+  DEFAULT_FEED_ML = ml;
+  DEFAULT_EBM_RATIO = ratio;
+  localStorage.setItem("ll_default_feed_ml", DEFAULT_FEED_ML);
+  localStorage.setItem("ll_default_ebm_ratio", DEFAULT_EBM_RATIO);
+  showToast("Feed defaults saved", "success");
 }
 function confirmReset() {
   document.getElementById("reset-count").textContent = entries.length;
@@ -666,7 +693,13 @@ function openModal(type, entryId) {
     document.getElementById("feed-modal-title").textContent = ex ? "🍼 Edit Feed" : "🍼 Feed";
     document.getElementById("feed-save-btn").textContent = ex ? "Update" : "Save";
     document.getElementById("feed-ts").value = tsVal;
-    if (ex) { document.getElementById("feed-total").value = ex.ml; document.getElementById("feed-ebm").value = ex.ebm; }
+    if (ex) {
+      document.getElementById("feed-total").value = ex.ml;
+      document.getElementById("feed-ebm").value = ex.ebm;
+    } else {
+      document.getElementById("feed-total").value = DEFAULT_FEED_ML;
+      document.getElementById("feed-ebm").value = Math.round(DEFAULT_FEED_ML * DEFAULT_EBM_RATIO / 100 / 5) * 5;
+    }
     updateFeedSliders();
   }
   if (type === "nappy") {
