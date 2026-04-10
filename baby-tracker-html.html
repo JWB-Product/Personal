@@ -428,13 +428,14 @@ function removeEntryFromServer(id) {
 }
 
 function saveEntry(entry) {
-  if (!entry.id) entry.id = editingEntryId || ((typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : (Date.now().toString(36)+Math.random().toString(36).slice(2)));
+  if (!entry.id) entry.id = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : (Date.now().toString(36)+Math.random().toString(36).slice(2));
+  var isEdit = entries.some(function(e) { return e.id === entry.id; });
   showToast("Saving...", "saving");
-  return upsertEntryOnServer(entry, editingEntryId)
+  return upsertEntryOnServer(entry, isEdit ? entry.id : null)
     .then(function(resp) {
       var saved = resp && resp.entry ? resp.entry : entry;
-      if (editingEntryId) {
-        entries = entries.map(function(e) { return e.id === editingEntryId ? saved : e; });
+      if (isEdit) {
+        entries = entries.map(function(e) { return e.id === entry.id ? saved : e; });
       } else {
         entries.unshift(saved);
       }
@@ -734,6 +735,7 @@ function saveFeed() {
   var ml = +document.getElementById("feed-total").value;
   var ebm = +document.getElementById("feed-ebm").value;
   var entry = { type:"feed", ml:ml, ebm:ebm, formula:ml-ebm, ts:tsFromInput("feed-ts"), who:WHO };
+  if (editingEntryId) entry.id = editingEntryId;
   closeModal("feed");
   saveEntry(entry);
 }
@@ -751,6 +753,7 @@ function saveNappy() {
     return;
   }
   var entry = { type:"nappy", nappyType:selectedNappy, ts:tsFromInput("nappy-ts"), who:WHO };
+  if (editingEntryId) entry.id = editingEntryId;
   closeModal("nappy");
   saveEntry(entry);
 }
@@ -759,6 +762,7 @@ function saveNappy() {
 function savePump() {
   var ml = +document.getElementById("pump-slider").value;
   var entry = { type:"pump", ml:ml, ts:tsFromInput("pump-ts"), who:WHO };
+  if (editingEntryId) entry.id = editingEntryId;
   closeModal("pump");
   saveEntry(entry);
 }

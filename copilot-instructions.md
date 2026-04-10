@@ -46,14 +46,16 @@ Supabase row shape (worker converts before send):
 - On edit modal, input initialized via `new Date(entry.ts - offset).toISOString().slice(0,16)` so local value matches stored UTC instant.
 
 ## Save flow
-1. Create entry object in UI save functions.
-2. `saveEntry()` sets `entry.id` if missing: reuses `editingEntryId` when editing, otherwise generates a new UUID. This ensures PUT body and path always reference the same ID — do not change this to always generate a new UUID.
-3. `upsertEntryOnServer()` maps to Supabase shape:
+1. Create entry object in UI save functions (`saveFeed`, `saveNappy`, `savePump`).
+2. If editing, set `entry.id = editingEntryId` **before** calling `closeModal` — `closeModal` nullifies `editingEntryId`, so the ID must be captured first.
+3. Call `closeModal`, then `saveEntry(entry)`.
+4. `saveEntry()` generates a new UUID if `entry.id` is still unset (new entries only). It then checks `entries.some(e => e.id === entry.id)` to decide POST (new) vs PUT (edit) — do not rely on `editingEntryId` inside `saveEntry` as it will already be null.
+5. `upsertEntryOnServer()` maps to Supabase shape:
    - `nappyType` -> `nappy_type`
    - `ml`, `ebm`, `formula`, etc.
-4. `apiFetch()` POST/PUT to worker with `X-App-Secret`, JSON body.
-5. On success, update `entries`, sort by `ts` desc, `persistEntriesToLocal()`, `renderHome()`, `renderRecent()`, optionally `renderTrends()`.
-6. On failure, set `serverConnected=false`, show error toast, stop writes.
+6. `apiFetch()` POST/PUT to worker with `X-App-Secret`, JSON body.
+7. On success, update `entries`, sort by `ts` desc, `persistEntriesToLocal()`, `renderHome()`, `renderRecent()`, optionally `renderTrends()`.
+8. On failure, set `serverConnected=false`, show error toast, stop writes.
 
 ## Log and filters
 - `getFiltered()` applies date and type filters from UI.
