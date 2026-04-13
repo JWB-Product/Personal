@@ -141,12 +141,18 @@ var MAX_ENTRIES = 3000;
     <div class="slider-row"><label>Total amount</label><span class="slider-val" id="feed-total-val">90ml</span></div>
     <input type="range" min="0" max="300" step="5" value="90" id="feed-total" oninput="updateFeedSliders()">
     <div class="slider-hint"><span>0ml</span><span>300ml</span></div>
-    <div class="slider-row"><label>EBM portion</label><span class="slider-val" id="feed-ebm-val">45ml</span></div>
-    <input type="range" min="0" max="90" step="5" value="45" id="feed-ebm" oninput="updateFeedSliders()">
-    <div class="slider-hint"><span>0ml</span><span id="feed-ebm-max-label">90ml</span></div>
-    <div style="background:#16162a;border-radius:10px;padding:12px 14px;margin-bottom:20px;display:flex;justify-content:space-between">
-      <span style="color:#94a3b8;font-size:14px">Formula</span>
-      <span style="color:#818cf8;font-weight:700;font-size:15px" id="feed-formula-val">45ml</span>
+    <div id="feed-ebm-section">
+      <div class="slider-row"><label>EBM portion</label><span class="slider-val" id="feed-ebm-val">45ml</span></div>
+      <input type="range" min="0" max="90" step="5" value="45" id="feed-ebm" oninput="updateFeedSliders()">
+      <div class="slider-hint"><span>0ml</span><span id="feed-ebm-max-label">90ml</span></div>
+      <div style="background:#16162a;border-radius:10px;padding:12px 14px;margin-bottom:20px;display:flex;justify-content:space-between">
+        <span style="color:#94a3b8;font-size:14px">Formula</span>
+        <span style="color:#818cf8;font-weight:700;font-size:15px" id="feed-formula-val">45ml</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;background:#16162a;border-radius:10px;padding:12px 14px;margin-bottom:16px">
+      <span style="color:#94a3b8;font-size:14px">💊 Gaviscon</span>
+      <button id="feed-gaviscon" data-on="0" onclick="toggleGavisconBtn()" style="background:#2e2e42;color:#64748b;border:none;border-radius:8px;padding:6px 14px;font-size:14px;font-weight:600;cursor:pointer">No</button>
     </div>
     <label>Date &amp; time</label>
     <input type="datetime-local" id="feed-ts" style="margin-bottom:16px">
@@ -207,6 +213,14 @@ var MAX_ENTRIES = 3000;
     <div style="font-size:12px;color:#64748b;margin-bottom:12px">e.g. 50% means half EBM, half formula</div>
     <button class="btn btn-primary" style="margin-bottom:16px" onclick="saveDefaultFeed()">Save feed defaults</button>
     <div style="border-top:1px solid #1e293b;margin-bottom:16px"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div>
+        <div style="font-size:14px;color:#e2e8f0;font-weight:600">Use EBM / pumping</div>
+        <div style="font-size:12px;color:#64748b;margin-top:2px">Show EBM slider and pump section</div>
+      </div>
+      <button id="settings-ebm-btn" onclick="toggleEBM()" style="border:none;border-radius:8px;padding:8px 16px;font-size:14px;font-weight:700;cursor:pointer;background:#818cf8;color:#fff">ON</button>
+    </div>
+    <div style="border-top:1px solid #1e293b;margin-bottom:16px"></div>
     <button class="btn btn-secondary" style="margin-bottom:10px" onclick="closeModal('settings');refreshData()">↻ Refresh data</button>
     <button class="btn btn-secondary" style="margin-bottom:10px" onclick="exportCSV()">⬇ Export as CSV</button>
     <button class="btn" style="width:100%;padding:14px;background:#2a1a1a;color:#ef4444;border:1px solid #3a2020;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer" onclick="closeModal('settings');confirmReset()">Reset all data</button>
@@ -241,6 +255,7 @@ var TAB_NAMES   = ["home","recent","trends"];
 var WHO            = "";
 var DEFAULT_FEED_ML    = 90;
 var DEFAULT_EBM_RATIO  = 50;
+var USE_EBM            = true;
 var entries        = [];
 var selectedNappy  = null;
 var trendDays      = 7;
@@ -253,6 +268,7 @@ var swipeStartX    = null;
 var charts         = {};
 var toastTimer     = null;
 var dataLoaded     = false;
+var GAVISCON_MAP   = {};
 var serverConnected = false;
 var lastFetchTime  = 0;
 var cachedPrevMap  = null;
@@ -278,6 +294,10 @@ window.addEventListener("load", function() {
   var savedRatio = localStorage.getItem("ll_default_ebm_ratio");
   if (savedMl !== null) DEFAULT_FEED_ML = +savedMl;
   if (savedRatio !== null) DEFAULT_EBM_RATIO = +savedRatio;
+  var savedEBM = localStorage.getItem("ll_use_ebm");
+  if (savedEBM !== null) USE_EBM = savedEBM === "1";
+  var savedGav = localStorage.getItem("ll_gaviscon");
+  if (savedGav) { try { GAVISCON_MAP = JSON.parse(savedGav); } catch(e) {} }
   var saved = localStorage.getItem("ll_who");
   if (saved) { WHO = saved; launchApp(); }
 });
@@ -606,10 +626,12 @@ function renderHomeShell() {
       '<div><div style="font-size:17px;font-weight:600;margin-bottom:3px">🩲 Nappy</div><div id="last-nappy" style="font-size:14px;color:#94a3b8">No entries yet</div></div>' +
       '<button class="btn" style="background:#22c55e;color:#fff;flex-shrink:0" onclick="openModal(\'nappy\')">Log</button>' +
     '</div>' +
-    '<div class="card" style="display:flex;align-items:center;justify-content:space-between">' +
-      '<div><div style="font-size:17px;font-weight:600;margin-bottom:3px">🤱 Pump</div><div id="last-pump" style="font-size:14px;color:#94a3b8">No entries yet</div></div>' +
-      '<button class="btn" style="background:#ec4899;color:#fff;flex-shrink:0" onclick="openModal(\'pump\')">Log</button>' +
-    '</div>';
+    (USE_EBM ?
+      '<div class="card" style="display:flex;align-items:center;justify-content:space-between">' +
+        '<div><div style="font-size:17px;font-weight:600;margin-bottom:3px">🤱 Pump</div><div id="last-pump" style="font-size:14px;color:#94a3b8">No entries yet</div></div>' +
+        '<button class="btn" style="background:#ec4899;color:#fff;flex-shrink:0" onclick="openModal(\'pump\')">Log</button>' +
+      '</div>'
+    : '');
 }
 
 function renderHome() {
@@ -618,7 +640,8 @@ function renderHome() {
     if (!el) return;
     var e = entries.find(function(x) { return x.type === type; });
     if (e) {
-      el.innerHTML = "<span style='font-size:14px;color:#818cf8;font-weight:600'>Last "+TYPE_NAMES[type]+" "+fmtFull(e.ts)+" ("+timeAgo(e.ts)+")</span>";
+      var gavMark = (type === "feed" && GAVISCON_MAP[e.id]) ? " 💊" : "";
+      el.innerHTML = "<span style='font-size:14px;color:#818cf8;font-weight:600'>Last "+TYPE_NAMES[type]+" "+fmtFull(e.ts)+" ("+timeAgo(e.ts)+")"+gavMark+"</span>";
     } else {
       el.textContent = "No entries yet";
     }
@@ -654,6 +677,8 @@ function openSettings() {
   document.getElementById("settings-name").value = WHO;
   document.getElementById("settings-default-ml").value = DEFAULT_FEED_ML;
   document.getElementById("settings-default-ebm-ratio").value = DEFAULT_EBM_RATIO;
+  var ebmBtn = document.getElementById("settings-ebm-btn");
+  if (ebmBtn) { ebmBtn.textContent = USE_EBM ? "ON" : "OFF"; ebmBtn.style.background = USE_EBM ? "#818cf8" : "#2e2e42"; ebmBtn.style.color = USE_EBM ? "#fff" : "#64748b"; }
   document.getElementById("modal-settings").style.display = "flex";
 }
 function saveName() {
@@ -702,6 +727,16 @@ function openModal(type, entryId) {
       document.getElementById("feed-ebm").value = Math.round(DEFAULT_FEED_ML * DEFAULT_EBM_RATIO / 100 / 5) * 5;
     }
     updateFeedSliders();
+    var ebmSec = document.getElementById("feed-ebm-section");
+    if (ebmSec) ebmSec.style.display = USE_EBM ? "" : "none";
+    var gavBtn = document.getElementById("feed-gaviscon");
+    if (gavBtn) {
+      var gavOn = ex ? !!GAVISCON_MAP[ex.id] : false;
+      gavBtn.dataset.on = gavOn ? "1" : "0";
+      gavBtn.textContent = gavOn ? "Yes" : "No";
+      gavBtn.style.background = gavOn ? "#4a3728" : "#2e2e42";
+      gavBtn.style.color = gavOn ? "#f59e0b" : "#64748b";
+    }
   }
   if (type === "nappy") {
     selectedNappy = null;
@@ -733,11 +768,14 @@ function updateFeedSliders() {
 }
 function saveFeed() {
   var ml = +document.getElementById("feed-total").value;
-  var ebm = +document.getElementById("feed-ebm").value;
+  var ebm = USE_EBM ? +document.getElementById("feed-ebm").value : 0;
+  var gav = document.getElementById("feed-gaviscon").dataset.on === "1";
   var entry = { type:"feed", ml:ml, ebm:ebm, formula:ml-ebm, ts:tsFromInput("feed-ts"), who:WHO };
   if (editingEntryId) entry.id = editingEntryId;
   closeModal("feed");
   saveEntry(entry);
+  if (gav) GAVISCON_MAP[entry.id] = true; else delete GAVISCON_MAP[entry.id];
+  localStorage.setItem("ll_gaviscon", JSON.stringify(GAVISCON_MAP));
 }
 
 // ---- Nappy ----
@@ -834,7 +872,7 @@ function renderRecent() {
     if (!e || !e.type) continue;
     var gi = entries.indexOf(e);
     var vol="", ratio="";
-    if (e.type==="feed") { vol=e.ml+"ml"; ratio=e.ebm+"ml EBM \u00b7 "+e.formula+"ml formula"; }
+    if (e.type==="feed") { vol=e.ml+"ml"; ratio=e.ebm+"ml EBM \u00b7 "+e.formula+"ml formula"+(GAVISCON_MAP[e.id] ? " \u00b7 \ud83d\udc8a Gaviscon" : ""); }
     else if (e.type==="pump") { vol=e.ml+"ml"; }
     else if (e.type==="nappy") { vol=e.nappyType ? e.nappyType.charAt(0).toUpperCase()+e.nappyType.slice(1) : ""; }
     var prev = prevMap.get(e);
@@ -962,6 +1000,31 @@ function renderTrends() {
   mkChart("c-nappy",{type:"bar",data:{labels:lb,datasets:[{label:"Wet",data:d.map(function(x){return x.wet;}),backgroundColor:"#38bdf8",stack:"a"},{label:"Dirty",data:d.map(function(x){return x.dirty;}),backgroundColor:"#a78bfa",stack:"a"},{label:"Both",data:d.map(function(x){return x.both;}),backgroundColor:"#34d399",stack:"a",borderRadius:4}]},options:COS});
   mkChart("c-freq",{type:"bar",data:{labels:lb,datasets:[{label:"Feeds",data:d.map(function(x){return x.feedCount;}),backgroundColor:"#3b82f6",borderRadius:4,yAxisID:"y"},{type:"line",label:"Avg ml",data:d.map(function(x){return x.avgFeed;}),borderColor:"#fbbf24",backgroundColor:"#fbbf24",pointRadius:4,yAxisID:"y2",tension:0.3}]},
     options:{responsive:true,plugins:{legend:{labels:{color:"#94a3b8",font:{size:12}}}},scales:{x:CO.scales.x,y:{ticks:{color:"#64748b",font:{size:11}},grid:{color:"#2e2e42"},beginAtZero:true,position:"left"},y2:{ticks:{color:"#64748b",font:{size:11}},grid:{drawOnChartArea:false},position:"right",beginAtZero:true}}}});
+}
+
+// ---- Gaviscon toggle ----
+function toggleGavisconBtn() {
+  var btn = document.getElementById("feed-gaviscon");
+  var isOn = btn.dataset.on === "1";
+  btn.dataset.on = isOn ? "0" : "1";
+  btn.textContent = isOn ? "No" : "Yes";
+  btn.style.background = isOn ? "#2e2e42" : "#4a3728";
+  btn.style.color = isOn ? "#64748b" : "#f59e0b";
+}
+
+// ---- EBM mode toggle ----
+function toggleEBM() {
+  USE_EBM = !USE_EBM;
+  localStorage.setItem("ll_use_ebm", USE_EBM ? "1" : "0");
+  applyEBMMode();
+}
+function applyEBMMode() {
+  var btn = document.getElementById("settings-ebm-btn");
+  if (btn) { btn.textContent = USE_EBM ? "ON" : "OFF"; btn.style.background = USE_EBM ? "#818cf8" : "#2e2e42"; btn.style.color = USE_EBM ? "#fff" : "#64748b"; }
+  var ebmSec = document.getElementById("feed-ebm-section");
+  if (ebmSec) ebmSec.style.display = USE_EBM ? "" : "none";
+  renderHomeShell();
+  renderHome();
 }
 </script>
 </body>
