@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PPTX Compressor</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f1117; --surface: #1a1d27; --surface2: #22263a;
+    --border: #2e3350; --text: #e8eaf0; --muted: #7b82a0;
+    --accent: #4f8ef7; --nuclear: #ff5722; --nuclear-bg: #2a1510;
+    --success: #4caf7d; --warn: #ffb347;
+  }
+  body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; font-size: 14px; min-height: 100vh; padding: 24px 16px; }
+  h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.3px; }
+  .subtitle { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  header { margin-bottom: 20px; }
+
+  .tabs { display: flex; gap: 4px; margin-bottom: 20px; background: var(--surface); border-radius: 10px; padding: 4px; }
+  .tab { flex: 1; padding: 8px; border-radius: 7px; border: none; background: none; color: var(--muted); cursor: pointer; font-size: 13px; font-weight: 500; transition: all .15s; }
+  .tab.active { background: var(--surface2); color: var(--text); }
+
+  .dropzone { border: 2px dashed var(--border); border-radius: 12px; padding: 36px 20px; text-align: center; cursor: pointer; transition: all .2s; background: var(--surface); margin-bottom: 20px; }
+  .dropzone.drag { border-color: var(--accent); background: rgba(79,142,247,.05); }
+  .dropzone.has-file { border-style: solid; border-color: var(--success); }
+  .dropzone-icon { font-size: 32px; margin-bottom: 8px; }
+  .dropzone-label { color: var(--muted); font-size: 13px; }
+  .dropzone-label strong { color: var(--text); }
+  #fileInput { display: none; }
+
+  .mode-row { display: flex; gap: 8px; margin-bottom: 20px; }
+  .mode-btn { flex: 1; padding: 10px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--surface); color: var(--muted); cursor: pointer; font-size: 13px; font-weight: 500; transition: all .15s; }
+  .mode-btn.active-standard { border-color: var(--accent); color: var(--accent); background: rgba(79,142,247,.08); }
+  .mode-btn.active-nuclear { border-color: var(--nuclear); color: var(--nuclear); background: var(--nuclear-bg); }
+
+  .settings { background: var(--surface); border-radius: 10px; border: 1px solid var(--border); padding: 16px; margin-bottom: 20px; }
+  .settings.nuclear-mode { border-color: rgba(255,87,34,.3); background: var(--nuclear-bg); }
+  .setting-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .setting-row:last-child { margin-bottom: 0; }
+  .setting-label { width: 130px; color: var(--muted); font-size: 12px; flex-shrink: 0; }
+  .setting-value { width: 38px; text-align: right; font-size: 12px; color: var(--text); flex-shrink: 0; }
+  input[type=range] { flex: 1; accent-color: var(--accent); }
+  .nuclear-mode input[type=range] { accent-color: var(--nuclear); }
+  .toggle-row { display: flex; align-items: center; gap: 8px; }
+  .toggle { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; inset: 0; background: var(--border); border-radius: 20px; cursor: pointer; transition: .2s; }
+  .slider:before { content: ''; position: absolute; height: 14px; width: 14px; left: 3px; top: 3px; background: white; border-radius: 50%; transition: .2s; }
+  input:checked + .slider { background: var(--nuclear); }
+  input:checked + .slider:before { transform: translateX(16px); }
+  .nuclear-warn { font-size: 11px; color: var(--nuclear); margin-top: 10px; padding: 8px 10px; background: rgba(255,87,34,.08); border-radius: 6px; border-left: 3px solid var(--nuclear); }
+
+  .action-btn { width: 100%; padding: 13px; border-radius: 10px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; transition: all .15s; margin-bottom: 8px; }
+  .action-btn.standard { background: var(--accent); color: white; }
+  .action-btn.nuclear { background: var(--nuclear); color: white; }
+  .action-btn.diagnose { background: var(--surface); border: 1.5px solid var(--border); color: var(--text); }
+  .action-btn.diagnose:not(:disabled):hover { border-color: var(--warn); color: var(--warn); }
+  .action-btn:disabled { opacity: .4; cursor: not-allowed; }
+  .action-btn:not(:disabled):hover { filter: brightness(1.1); }
+
+  .progress-wrap { margin-top: 20px; display: none; }
+  .progress-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .progress-bar-bg { background: var(--surface2); border-radius: 99px; height: 6px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; border-radius: 99px; background: var(--accent); transition: width .2s; }
+  .progress-wrap.nuclear-mode .progress-bar-fill { background: var(--nuclear); }
+
+  .results { margin-top: 20px; display: none; }
+  .results-summary { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 12px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; text-align: center; }
+  .stat-val { font-size: 22px; font-weight: 700; }
+  .stat-val.good { color: var(--success); }
+  .stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .log { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; max-height: 220px; overflow-y: auto; }
+  .log-item { font-size: 11px; color: var(--muted); padding: 4px 0; border-bottom: 1px solid var(--surface2); display: flex; justify-content: space-between; gap: 8px; }
+  .log-item:last-child { border-bottom: none; }
+  .log-item .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+  .log-item .saving { color: var(--success); flex-shrink: 0; }
+  .log-item .skipped { color: var(--warn); flex-shrink: 0; }
+  .download-btn { width: 100%; margin-top: 12px; padding: 13px; border-radius: 10px; border: 1.5px solid var(--success); background: rgba(76,175,125,.1); color: var(--success); font-size: 14px; font-weight: 600; cursor: pointer; transition: all .15s; }
+  .download-btn:hover { background: rgba(76,175,125,.2); }
+  .error-box { margin-top: 16px; padding: 12px; background: rgba(206,19,45,.1); border: 1px solid rgba(206,19,45,.3); border-radius: 8px; font-size: 12px; color: #ff6b6b; display: none; }
+
+  /* Diagnose styles */
+  .diag-panel { display: none; margin-top: 20px; }
+  .diag-title { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+  .diag-insight { padding: 10px 12px; background: rgba(255,179,71,.08); border: 1px solid rgba(255,179,71,.25); border-radius: 8px; font-size: 12px; color: var(--warn); margin-bottom: 16px; line-height: 1.5; }
+  .diag-insight strong { display: block; margin-bottom: 4px; font-size: 13px; }
+  .cat-list { margin-bottom: 16px; }
+  .cat-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .cat-name { width: 110px; font-size: 12px; color: var(--muted); flex-shrink: 0; }
+  .cat-bar-bg { flex: 1; height: 14px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+  .cat-bar-fill { height: 100%; border-radius: 4px; transition: width .4s; }
+  .cat-size { width: 70px; font-size: 11px; color: var(--text); text-align: right; flex-shrink: 0; }
+  .cat-pct { width: 36px; font-size: 11px; color: var(--muted); text-align: right; flex-shrink: 0; }
+  .top-files { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; max-height: 260px; overflow-y: auto; }
+  .top-file { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--surface2); font-size: 11px; }
+  .top-file:last-child { border-bottom: none; }
+  .tf-rank { width: 18px; color: var(--muted); flex-shrink: 0; text-align: right; }
+  .tf-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; color: var(--text); }
+  .tf-type { width: 48px; flex-shrink: 0; }
+  .tf-size { width: 56px; text-align: right; flex-shrink: 0; color: var(--text); font-weight: 500; }
+  .tag { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 500; }
+  .tag-img   { background: rgba(79,142,247,.15); color: #4f8ef7; }
+  .tag-vid   { background: rgba(255,87,34,.15); color: #ff5722; }
+  .tag-font  { background: rgba(156,39,176,.15); color: #ce93d8; }
+  .tag-embed { background: rgba(255,179,71,.15); color: #ffb347; }
+  .tag-vec   { background: rgba(76,175,125,.15); color: #4caf7d; }
+  .tag-xml   { background: rgba(123,130,160,.15); color: #7b82a0; }
+  .tag-other { background: rgba(123,130,160,.1); color: #7b82a0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>PPTX Compressor</h1>
+  <p class="subtitle">Client-side — your file never leaves the browser</p>
+</header>
+
+<div class="tabs">
+  <button class="tab active" id="tabCompress" onclick="switchTab('compress')">⚡ Compress</button>
+  <button class="tab" id="tabDiag" onclick="switchTab('diag')">🔍 Diagnose</button>
+</div>
+
+<div class="dropzone" id="dropzone" onclick="document.getElementById('fileInput').click()">
+  <div class="dropzone-icon">📎</div>
+  <div class="dropzone-label"><strong>Click to select</strong> or drag &amp; drop a .pptx file</div>
+  <input type="file" id="fileInput" accept=".pptx">
+</div>
+
+<!-- COMPRESS TAB -->
+<div id="compressTab">
+  <div class="mode-row">
+    <button class="mode-btn active-standard" id="btnStandard" onclick="setMode('standard')">⚡ Standard</button>
+    <button class="mode-btn" id="btnNuclear" onclick="setMode('nuclear')">☢️ Nuclear</button>
+  </div>
+  <div class="settings" id="settingsPanel">
+    <div class="setting-row">
+      <span class="setting-label">Image quality</span>
+      <input type="range" id="quality" min="20" max="90" value="70">
+      <span class="setting-value" id="qualityVal">70%</span>
+    </div>
+    <div class="setting-row">
+      <span class="setting-label">Max resolution</span>
+      <input type="range" id="maxRes" min="640" max="3840" step="160" value="1920">
+      <span class="setting-value" id="maxResVal">1920</span>
+    </div>
+    <div class="setting-row">
+      <span class="setting-label">PNG → JPEG</span>
+      <div class="toggle-row">
+        <label class="toggle"><input type="checkbox" id="convertPng"><span class="slider"></span></label>
+        <span style="font-size:12px; color:var(--muted)">Convert opaque PNGs to JPEG</span>
+      </div>
+    </div>
+    <div class="setting-row">
+      <span class="setting-label">Remove unused</span>
+      <div class="toggle-row">
+        <label class="toggle"><input type="checkbox" id="removeUnused"><span class="slider"></span></label>
+        <span style="font-size:12px; color:var(--muted)">Strip unreferenced media</span>
+      </div>
+    </div>
+    <div class="setting-row">
+      <span class="setting-label">Strip video</span>
+      <div class="toggle-row">
+        <label class="toggle"><input type="checkbox" id="stripVideos"><span class="slider"></span></label>
+        <span style="font-size:12px; color:var(--muted)">Remove embedded video files</span>
+      </div>
+    </div>
+    <div class="nuclear-warn" id="nuclearWarn" style="display:none">☢️ Nuclear mode: expect visible quality reduction. Suitable for web hosting where file size is the priority.</div>
+  </div>
+  <button class="action-btn standard" id="runBtn" disabled onclick="run()">Select a file to compress</button>
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-label" id="progressLabel">Processing…</div>
+    <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill" style="width:0%"></div></div>
+  </div>
+  <div class="error-box" id="errorBox"></div>
+  <div class="results" id="resultsPanel">
+    <div class="results-summary">
+      <div><div class="stat-val" id="statOrig">—</div><div class="stat-label">Original</div></div>
+      <div><div class="stat-val" id="statNew">—</div><div class="stat-label">Compressed</div></div>
+      <div><div class="stat-val good" id="statSave">—</div><div class="stat-label">Saved</div></div>
+    </div>
+    <div class="log" id="logEl"></div>
+    <button class="download-btn" id="downloadBtn">⬇ Download compressed PPTX</button>
+  </div>
+</div>
+
+<!-- DIAGNOSE TAB -->
+<div id="diagTab" style="display:none">
+  <button class="action-btn diagnose" id="diagBtn" disabled onclick="diagnose()">Select a file to diagnose</button>
+  <div class="diag-panel" id="diagPanel">
+    <div class="diag-insight" id="diagInsight"></div>
+    <div class="diag-title">Size by category</div>
+    <div class="cat-list" id="catList"></div>
+    <div class="diag-title">Top 30 largest files</div>
+    <div class="top-files" id="topFiles"></div>
+  </div>
+</div>
+
+<script>
+let mode = 'standard', selectedFile = null, outputBlob = null, activeTab = 'compress';
+
+const MODES = {
+  standard: { quality: 70, maxRes: 1920, convertPng: false, removeUnused: false },
+  nuclear:  { quality: 45, maxRes: 1280, convertPng: true,  removeUnused: true  }
+};
+
+const CAT_COLORS = {
+  'Video':      '#ff5722',
+  'Raster img': '#4f8ef7',
+  'Vector img': '#4caf7d',
+  'Font':       '#ce93d8',
+  'Embedding':  '#ffb347',
+  'Slide XML':  '#7b82a0',
+  'Other XML':  '#4a5060',
+  'Other':      '#3a3f55',
+};
+
+function switchTab(t) {
+  activeTab = t;
+  document.getElementById('tabCompress').className = 'tab' + (t==='compress'?' active':'');
+  document.getElementById('tabDiag').className = 'tab' + (t==='diag'?' active':'');
+  document.getElementById('compressTab').style.display = t==='compress'?'block':'none';
+  document.getElementById('diagTab').style.display = t==='diag'?'block':'none';
+}
+
+function setMode(m) {
+  mode = m;
+  const s = MODES[m];
+  document.getElementById('quality').value = s.quality;
+  document.getElementById('maxRes').value = s.maxRes;
+  document.getElementById('convertPng').checked = s.convertPng;
+  document.getElementById('removeUnused').checked = s.removeUnused;
+  document.getElementById('qualityVal').textContent = s.quality + '%';
+  document.getElementById('maxResVal').textContent = s.maxRes;
+  document.getElementById('btnStandard').className = 'mode-btn' + (m==='standard'?' active-standard':'');
+  document.getElementById('btnNuclear').className = 'mode-btn' + (m==='nuclear'?' active-nuclear':'');
+  document.getElementById('settingsPanel').className = 'settings' + (m==='nuclear'?' nuclear-mode':'');
+  document.getElementById('nuclearWarn').style.display = m==='nuclear'?'block':'none';
+  document.getElementById('progressWrap').className = 'progress-wrap' + (m==='nuclear'?' nuclear-mode':'');
+  const btn = document.getElementById('runBtn');
+  btn.className = 'action-btn ' + m;
+  if (selectedFile) btn.textContent = m==='nuclear'?'☢️ Compress (Nuclear)':'⚡ Compress';
+}
+
+document.getElementById('quality').oninput = e => document.getElementById('qualityVal').textContent = e.target.value + '%';
+document.getElementById('maxRes').oninput = e => document.getElementById('maxResVal').textContent = e.target.value;
+
+const dz = document.getElementById('dropzone');
+dz.ondragover = e => { e.preventDefault(); dz.classList.add('drag'); };
+dz.ondragleave = () => dz.classList.remove('drag');
+dz.ondrop = e => { e.preventDefault(); dz.classList.remove('drag'); handleFile(e.dataTransfer.files[0]); };
+document.getElementById('fileInput').onchange = e => handleFile(e.target.files[0]);
+
+function handleFile(f) {
+  if (!f || !f.name.toLowerCase().endsWith('.pptx')) { showError('Please select a valid .pptx file.'); return; }
+  selectedFile = f;
+  dz.classList.add('has-file');
+  dz.querySelector('.dropzone-label').innerHTML = `<strong>${f.name}</strong><br><span style="color:var(--muted)">${fmtSize(f.size)}</span>`;
+  const btn = document.getElementById('runBtn');
+  btn.disabled = false;
+  btn.textContent = mode==='nuclear'?'☢️ Compress (Nuclear)':'⚡ Compress';
+  document.getElementById('diagBtn').disabled = false;
+  document.getElementById('diagBtn').textContent = '🔍 Analyse file';
+  document.getElementById('resultsPanel').style.display = 'none';
+  document.getElementById('diagPanel').style.display = 'none';
+  document.getElementById('errorBox').style.display = 'none';
+}
+
+function fmtSize(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  return (b/1048576).toFixed(2) + ' MB';
+}
+
+function catForPath(path) {
+  const ext = path.split('.').pop().toLowerCase();
+  const vidExts = ['mp4','mov','wmv','avi','mkv','webm','m4v','flv','ogv'];
+  const imgExts = ['jpg','jpeg','png','gif','bmp','webp','tiff','tif'];
+  const vecExts = ['wmf','emf','svg'];
+  const fontExts = ['fntdata','ttf','otf','woff','woff2'];
+  if (vidExts.includes(ext)) return 'Video';
+  if (imgExts.includes(ext)) return 'Raster img';
+  if (vecExts.includes(ext)) return 'Vector img';
+  if (path.includes('/fonts/') || fontExts.includes(ext)) return 'Font';
+  if (path.includes('/embeddings/')) return 'Embedding';
+  if (path.includes('/slides/slide') && ext==='xml') return 'Slide XML';
+  if (ext==='xml' || ext==='rels') return 'Other XML';
+  return 'Other';
+}
+
+function tagForCat(cat) {
+  const map = {'Video':'tag-vid','Raster img':'tag-img','Vector img':'tag-vec','Font':'tag-font','Embedding':'tag-embed','Slide XML':'tag-xml','Other XML':'tag-xml','Other':'tag-other'};
+  return `<span class="tag ${map[cat]||'tag-other'}">${cat}</span>`;
+}
+
+async function diagnose() {
+  if (!selectedFile) return;
+  document.getElementById('diagBtn').disabled = true;
+  document.getElementById('diagBtn').textContent = 'Analysing…';
+  try {
+    const buf = await selectedFile.arrayBuffer();
+    const zip = await JSZip.loadAsync(buf);
+    const files = [];
+    const catTotals = {};
+
+    zip.forEach((path, f) => {
+      if (f.dir) return;
+      // JSZip stores compressed; get uncompressed size via _data
+      const size = f._data ? (f._data.uncompressedSize || 0) : 0;
+      const cat = catForPath(path);
+      files.push({ path, size, cat });
+      catTotals[cat] = (catTotals[cat] || 0) + size;
+    });
+
+    const total = files.reduce((s, f) => s + f.size, 0);
+    files.sort((a, b) => b.size - a.size);
+
+    // Category bars
+    const sortedCats = Object.entries(catTotals).sort((a, b) => b[1] - a[1]);
+    const maxCat = sortedCats[0]?.[1] || 1;
+    document.getElementById('catList').innerHTML = sortedCats.map(([cat, sz]) => {
+      const pct = ((sz / total) * 100).toFixed(1);
+      const barW = ((sz / maxCat) * 100).toFixed(1);
+      const col = CAT_COLORS[cat] || '#3a3f55';
+      return `<div class="cat-row">
+        <span class="cat-name">${cat}</span>
+        <div class="cat-bar-bg"><div class="cat-bar-fill" style="width:${barW}%;background:${col}"></div></div>
+        <span class="cat-size">${fmtSize(sz)}</span>
+        <span class="cat-pct">${pct}%</span>
+      </div>`;
+    }).join('');
+
+    // Top files
+    document.getElementById('topFiles').innerHTML = files.slice(0, 30).map((f, i) => {
+      const fname = f.path.split('/').pop();
+      return `<div class="top-file">
+        <span class="tf-rank">${i+1}</span>
+        <span class="tf-name" title="${f.path}">${fname}</span>
+        <span class="tf-type">${tagForCat(f.cat)}</span>
+        <span class="tf-size">${fmtSize(f.size)}</span>
+      </div>`;
+    }).join('');
+
+    // Insight
+    const topCat = sortedCats[0];
+    const topCatPct = topCat ? ((topCat[1]/total)*100).toFixed(0) : 0;
+    const vidSize = catTotals['Video'] || 0;
+    const fontSize = catTotals['Font'] || 0;
+    const embedSize = catTotals['Embedding'] || 0;
+    const vecSize = catTotals['Vector img'] || 0;
+    const insights = [];
+    if (vidSize > total * 0.1) insights.push(`<strong>🎬 Embedded video: ${fmtSize(vidSize)} (${((vidSize/total)*100).toFixed(0)}%)</strong>Browser-hostile. Consider linking to hosted video instead of embedding.`);
+    if (fontSize > 1024*1024) insights.push(`<strong>🔤 Embedded fonts: ${fmtSize(fontSize)} (${((fontSize/total)*100).toFixed(0)}%)</strong>Font subsetting or removing non-display fonts will reduce this.`);
+    if (embedSize > 1024*512) insights.push(`<strong>📊 Embedded objects: ${fmtSize(embedSize)} (${((embedSize/total)*100).toFixed(0)}%)</strong>Embedded Excel/Word objects carry full source data. Convert to images to strip.`);
+    if (vecSize > 1024*1024) insights.push(`<strong>🖼 Vector/metafiles: ${fmtSize(vecSize)} (${((vecSize/total)*100).toFixed(0)}%)</strong>WMF/EMF files can't be canvas-compressed. Rasterising them in PowerPoint before export helps.`);
+    if (insights.length === 0) insights.push(`<strong>📦 Largest category: ${topCat?.[0]} at ${topCatPct}%</strong>No single obvious culprit. Image compression is your best lever — try Nuclear mode.`);
+    document.getElementById('diagInsight').innerHTML = insights.join('<br><br>');
+
+    document.getElementById('diagPanel').style.display = 'block';
+  } catch(e) {
+    showError('Analysis failed: ' + e.message);
+  }
+  document.getElementById('diagBtn').disabled = false;
+  document.getElementById('diagBtn').textContent = '🔍 Analyse file';
+}
+
+function setProgress(pct, label) {
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressLabel').textContent = label;
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorBox');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function hasAlpha(ctx, w, h) {
+  const sw = Math.min(w, 400), sh = Math.min(h, 400);
+  const d = ctx.getImageData(0, 0, sw, sh).data;
+  for (let i = 3; i < d.length; i += 4) if (d[i] < 250) return true;
+  return false;
+}
+
+async function compressImage(data, filename, quality, maxRes, convertPng) {
+  const ext = filename.split('.').pop().toLowerCase();
+  if (!['jpg','jpeg','png','gif','bmp','webp'].includes(ext)) return { data, changed: false, newName: filename };
+  return new Promise(resolve => {
+    const blob = new Blob([data]);
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let w = img.naturalWidth, h = img.naturalHeight;
+      if (!w || !h) { resolve({ data, changed: false, newName: filename }); return; }
+      const scale = Math.min(1, maxRes / Math.max(w, h));
+      w = Math.round(w * scale); h = Math.round(h * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      const isPng = ext === 'png';
+      const alpha = isPng && hasAlpha(ctx, w, h);
+      const useJpeg = !alpha && (ext !== 'png' || convertPng);
+      const outType = useJpeg ? 'image/jpeg' : 'image/png';
+      const newName = useJpeg && ext !== 'jpg' && ext !== 'jpeg'
+        ? filename.replace(/\.[^.]+$/, '.jpg') : filename;
+      canvas.toBlob(b => {
+        b.arrayBuffer().then(buf => resolve({ data: buf, changed: true, newName, converted: newName !== filename }));
+      }, outType, useJpeg ? quality / 100 : undefined);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve({ data, changed: false, newName: filename }); };
+    img.src = url;
+  });
+}
+
+async function run() {
+  if (!selectedFile) return;
+  const quality = +document.getElementById('quality').value;
+  const maxRes = +document.getElementById('maxRes').value;
+  const convertPng = document.getElementById('convertPng').checked;
+      const removeUnused = document.getElementById('removeUnused').checked;
+  const stripVideos = document.getElementById('stripVideos').checked;
+  document.getElementById('runBtn').disabled = true;
+  document.getElementById('progressWrap').style.display = 'block';
+  document.getElementById('resultsPanel').style.display = 'none';
+  document.getElementById('errorBox').style.display = 'none';
+  setProgress(2, 'Reading file…');
+  try {
+    const buf = await selectedFile.arrayBuffer();
+    const zip = await JSZip.loadAsync(buf);
+    const log = [], renameMap = {};
+    let mediaFiles = [];
+    zip.forEach((path, f) => { if (!f.dir && path.startsWith('ppt/media/')) mediaFiles.push(path); });
+
+    let referencedMedia = new Set();
+    if (removeUnused) {
+      const relsPaths = [];
+      zip.forEach((path, f) => { if (!f.dir && path.endsWith('.rels')) relsPaths.push(path); });
+      for (const rp of relsPaths) {
+        const content = await zip.file(rp).async('string');
+        for (const m of content.matchAll(/Target="[^"]*\/media\/([^"]+)"/g)) referencedMedia.add('ppt/media/' + m[1]);
+      }
+    }
+
+    // Strip video files + patch .rels
+    if (stripVideos) {
+      const vidExts = new Set(['mp4','mov','wmv','avi','mkv','webm','m4v','flv','ogv','mpg','mpeg']);
+      const videoFiles = mediaFiles.filter(p => vidExts.has(p.split('.').pop().toLowerCase()));
+      const videoFilenames = new Set(videoFiles.map(p => p.split('/').pop()));
+      let vidBytes = 0;
+      for (const vp of videoFiles) {
+        const d = await zip.file(vp).async('arraybuffer');
+        vidBytes += d.byteLength;
+        zip.remove(vp);
+        log.push({ name: vp.split('/').pop(), note: 'video stripped', saving: null });
+      }
+      // Patch .rels — remove Relationship entries pointing to stripped video files
+      const relsPaths = [];
+      zip.forEach((path, f) => { if (!f.dir && path.endsWith('.rels')) relsPaths.push(path); });
+      for (const rp of relsPaths) {
+        let content = await zip.file(rp).async('string');
+        const patched = content.replace(/<Relationship\s[^>]*\/>/g, m => {
+          const t = (m.match(/Target="([^"]+)"/) || [])[1] || '';
+          return videoFilenames.has(t.split('/').pop()) ? '' : m;
+        });
+        if (patched !== content) zip.file(rp, patched);
+      }
+      mediaFiles = mediaFiles.filter(p => !videoFilenames.has(p.split('/').pop()));
+    }
+
+    let thumbRemoved = false;
+    ['docProps/thumbnail.jpeg','docProps/thumbnail.jpg','docProps/thumbnail.png'].forEach(p => {
+      if (zip.file(p)) { zip.remove(p); thumbRemoved = true; }
+    });
+    if (thumbRemoved) log.push({ name: 'docProps/thumbnail.*', note: 'removed', saving: null });
+
+    for (let i = 0; i < mediaFiles.length; i++) {
+      const path = mediaFiles[i];
+      const fname = path.split('/').pop();
+      setProgress(5 + Math.round((i / mediaFiles.length) * 85), `Processing ${fname} (${i+1}/${mediaFiles.length})…`);
+      if (removeUnused && !referencedMedia.has(path)) {
+        zip.remove(path);
+        log.push({ name: fname, note: 'unused – removed', saving: null });
+        continue;
+      }
+      const data = await zip.file(path).async('arraybuffer');
+      const origSize = data.byteLength;
+      const result = await compressImage(data, fname, quality, maxRes, convertPng);
+      if (result.changed && result.data.byteLength < origSize) {
+        const saving = origSize - result.data.byteLength;
+        zip.remove(path);
+        const newPath = result.newName !== fname ? 'ppt/media/' + result.newName : path;
+        zip.file(newPath, result.data);
+        if (result.newName !== fname) renameMap[path] = newPath;
+        log.push({ name: fname, saving, newName: result.newName !== fname ? result.newName : null });
+      } else {
+        const reason = result.changed ? ' (already optimal)' : ' (skipped)';
+        log.push({ name: fname, saving: 0, note: reason });
+      }
+    }
+
+    setProgress(92, 'Patching references…');
+    if (Object.keys(renameMap).length > 0) {
+      const toPatch = [];
+      zip.forEach((path, f) => { if (!f.dir && (path.endsWith('.rels') || path === '[Content_Types].xml')) toPatch.push(path); });
+      for (const fp of toPatch) {
+        let content = await zip.file(fp).async('string');
+        let changed = false;
+        for (const [op, np] of Object.entries(renameMap)) {
+          const of2 = op.split('/').pop(), nf = np.split('/').pop();
+          if (content.includes(of2)) { content = content.replaceAll(of2, nf); changed = true; }
+        }
+        if (changed) {
+          if (fp === '[Content_Types].xml' && !content.includes('Extension="jpeg"') && !content.includes('Extension="jpg"'))
+            content = content.replace('</Types>', '<Default Extension="jpeg" ContentType="image/jpeg"/></Types>');
+          zip.file(fp, content);
+        }
+      }
+    }
+
+    setProgress(96, 'Recompressing ZIP…');
+    const outBuf = await zip.generateAsync({ type: 'arraybuffer', compression: 'DEFLATE', compressionOptions: { level: 9 } });
+    outputBlob = new Blob([outBuf], { type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' });
+    setProgress(100, 'Done!');
+
+    const origTotal = selectedFile.size;
+    const newTotal = outputBlob.size;
+    const savedTotal = origTotal - newTotal;
+    const savedPct = ((savedTotal / origTotal) * 100).toFixed(1);
+    document.getElementById('statOrig').textContent = fmtSize(origTotal);
+    document.getElementById('statNew').textContent = fmtSize(newTotal);
+    document.getElementById('statSave').textContent = savedPct + '%';
+    document.getElementById('logEl').innerHTML = log.map(l => {
+      if (l.saving === null) return `<div class="log-item"><span class="name">${l.name}</span><span class="skipped">${l.note}</span></div>`;
+      if (l.saving === 0) return `<div class="log-item"><span class="name">${l.name}</span><span class="skipped">no gain${l.note||''}</span></div>`;
+      const extra = l.newName ? ` → ${l.newName}` : '';
+      return `<div class="log-item"><span class="name">${l.name}${extra}</span><span class="saving">-${fmtSize(l.saving)}</span></div>`;
+    }).join('');
+    document.getElementById('resultsPanel').style.display = 'block';
+    document.getElementById('downloadBtn').onclick = () => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(outputBlob);
+      a.download = selectedFile.name.replace(/\.pptx$/i, '_compressed.pptx');
+      a.click();
+    };
+  } catch(e) { showError('Error: ' + e.message); console.error(e); }
+  document.getElementById('runBtn').disabled = false;
+}
+
+setMode('standard');
+</script>
+</body>
+</html>
